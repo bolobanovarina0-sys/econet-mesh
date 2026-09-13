@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/style.css?v=6.0">
+  <link rel="stylesheet" href="/static/style.css?v=7.0">
 </head>
 <body>
 
@@ -21,7 +21,6 @@
       </div>
     </div>
 
-    <!-- Метеосводка и роза ветров -->
     <div class="sys-metrics">
       <div class="metric-box">
         <span class="metric-lbl">Метео (Маркотх):</span>
@@ -44,7 +43,7 @@
     <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
   </header>
 
-  <!-- КАРТА-ХЭДЕР -->
+  <!-- КАРТА -->
   <section class="map-section">
     <div id="map"></div>
     <div id="adminControls" class="map-controls hidden">
@@ -62,7 +61,7 @@
       <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного оператора ЕДДС</button>
     </nav>
 
-    <!-- ВКЛАДКА 1: ГРАЖДАНСКИЙ КОНТУР С АННОТАЦИЕЙ И КОАП -->
+    <!-- ВКЛАДКА 1: ГРАЖДАНСКИЙ КОНТУР -->
     <section id="citizenTab" class="tab-view active">
       <div class="gov-grid-2">
         
@@ -72,18 +71,19 @@
             <span class="gov-pill">Анонимно</span>
           </div>
           <div class="gov-card__body">
-            <!-- Аннотация к системе -->
             <p class="section-intro">
-              <b>Аннотация:</b> Комплекс предназначен для непрерывного мониторинга лесного фонда и объектов повышенного риска в МО город Новороссийск. Сигнал от очевидцев проходит автоматическую кросс-проверку по телеметрии датчиков EcoNet Mesh перед выездом расчетов.
+              <b>Аннотация:</b> Комплекс предназначен для непрерывного мониторинга лесного фонда и объектов повышенного риска в МО город Новороссийск. Сигнал от очевидцев проходит кросс-проверку по телеметрии датчиков EcoNet Mesh.
             </p>
 
             <form id="citizenForm" class="gov-form">
               <div class="form-row">
-                <label>Объект повышенного риска:</label>
+                <label>Объект повышенного риска (все зоны):</label>
                 <div class="fast-tags">
-                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-01">Полигон ТКО г. Щелба</button>
-                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-02">Сухая Щель (Заказник)</button>
-                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-03">Карьер «Пролетарий»</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-01">Полигон г. Щелба</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-02">Сухая Щель</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-03">Карьер Пролетарий</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-04">Волчьи Ворота</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-05">Семь Ветров</button>
                 </div>
               </div>
               <div class="form-row">
@@ -91,9 +91,8 @@
                 <input type="text" id="citLoc" placeholder="Например: Склон над Борисовкой" required>
               </div>
 
-              <!-- Предупреждение о добросовестности (ст. 19.13 КоАП РФ) -->
               <div class="legal-notice">
-                ⚠️ <b>Правовое напоминание:</b> Заведомо ложный вызов специализированных служб отвлекает дежурные расчеты и влечет административную ответственность согласно ст. 19.13 КоАП РФ. Передавайте сигнал только при реальной угрозе.
+                ⚠️ <b>Правовое напоминание:</b> Заведомо ложный вызов специализированных служб отвлекает дежурные расчеты и влечет административную ответственность согласно ст. 19.13 КоАП РФ.
               </div>
 
               <button type="submit" class="ctrl-btn ctrl-btn--primary">Отправить сообщение в ЕДДС</button>
@@ -121,7 +120,7 @@
       </div>
     </section>
 
-    <!-- ВКЛАДКА 2: АППАРАТНЫЙ УЗЕЛ (3D) -->
+    <!-- ВКЛАДКА 2: АППАРАТНЫЙ УЗЕЛ (3D с тезисами вместо цены) -->
     <section id="hardwareTab" class="tab-view">
       <div class="gov-grid-2">
         <div class="gov-card">
@@ -136,24 +135,25 @@
 
         <div class="gov-card">
           <div class="gov-card__header">
-            <h3>Спецификация и экономика</h3>
-            <span class="gov-pill ok-pill">2 150 ₽ / шт</span>
+            <h3>Технологическое превосходство и экономика</h3>
+            <span class="gov-pill ok-pill">Защита бюджета</span>
           </div>
-          <div class="gov-card__body" style="font-size:12px; display:flex; flex-direction:column; gap:8px;">
+          <div class="gov-card__body" style="font-size:12px; display:flex; flex-direction:column; gap:10px;">
             <div><b>Микроконтроллер:</b> ESP32-S3 (Dual-Core 240MHz)</div>
-            <div><b>Связь:</b> LoRa SX1262 (868 МГц, Mesh до 10 км)</div>
-            <div><b>Сенсоры:</b> Bosch BME280 + CCS811 (Угарный газ / пиролиз)</div>
-            <div><b>Автономность:</b> LiFePO4 18650 + Солнечная панель (от 3 лет)</div>
+            <div><b>Связь:</b> LoRa SX1262 (868 МГц, Mesh-ретрансляция до 10 км без GSM)</div>
+            <div><b>Сенсоры:</b> Bosch BME280 + газоанализатор CCS811 (раннее детектирование угарного газа CO на стадии тления)</div>
+            <div style="background: rgba(34, 197, 94, 0.1); border-left: 3px solid var(--ok); padding: 8px; border-radius: 4px; color: #4ade80; margin-top: 4px;">
+              💡 <b>Предотвращение издержек:</b> Развертывание автономной ячеистой сети исключает миллионные убытки от масштабных верховых пожаров на Маркотхском хребте за счет раннего реагирования в первые 5 минут.
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (С 3 ПОЛНОЦЕННЫМИ КОЛОНКАМИ И ИО) -->
+    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА -->
     <section id="operatorTab" class="tab-view hidden">
       <div class="gov-grid-3">
         
-        <!-- Колонка 1: Протокол реагирования и наряды -->
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Протокол реагирования и наряды</h3>
@@ -164,7 +164,6 @@
               <div class="dispatch-alert__title">ТРЕБУЕТСЯ РЕАГИРОВАНИЕ</div>
               <div id="dispatchTarget" class="dispatch-alert__desc">Локация: ...</div>
               <div id="dispatchTele" class="dispatch-alert__sub">Телеметрия: ...</div>
-              <!-- Ответственный ИО виден только оператору -->
               <div class="io-box" id="dispatchIO" style="margin: 8px 0; padding:6px; background:#fffbeb; border:1px solid #fcd34d; font-size:11px; border-radius:4px; color:#b45309;">
                 Ответственный ИО: ...
               </div>
@@ -176,11 +175,14 @@
               </select>
               <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="width:100%; margin-top:8px;">Подтвердить и направить наряд</button>
             </div>
+
+            <div id="noIncidentText" style="font-size:11px; color:var(--text-muted); text-align:center; padding: 15px 0;">
+              Ожидание входящих вызовов и срабатывания датчиков сети...
+            </div>
             
-            <div class="checklist" style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+            <div class="checklist" style="display:flex; flex-direction:column; gap:6px; font-size:11px; margin-top:10px;">
               <label><input type="checkbox" checked disabled> Опрос LoRa-периметра (868 МГц)</label>
               <label><input type="checkbox" checked disabled> Мониторинг розы ветров Маркотха</label>
-              <label><input type="checkbox" checked disabled> Сверка контактов ИО по участку</label>
             </div>
 
             <button id="exportExcelBtn" class="ctrl-btn ctrl-btn--secondary" style="margin-top:14px; width:100%;">
@@ -189,7 +191,6 @@
           </div>
         </div>
 
-        <!-- Колонка 2: Оперативный журнал событий -->
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Оперативный журнал событий</h3>
@@ -200,7 +201,6 @@
           </div>
         </div>
 
-        <!-- Колонка 3: Секторы периметра с ИО -->
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Секторы и ответственные ИО</h3>
@@ -217,6 +217,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js?v=6.0"></script>
+  <script src="/static/app.js?v=7.0"></script>
 </body>
 </html>
