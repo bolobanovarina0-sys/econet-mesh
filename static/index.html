@@ -58,8 +58,9 @@
     .role-tab:hover { color: #fff; }
     .role-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-    .tab-view { display: none; padding: 16px 20px; }
-    .tab-view.active { display: block; }
+    /* КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обязательный показ активной вкладки */
+    .tab-view { display: none !important; padding: 16px 20px; }
+    .tab-view.active { display: block !important; }
 
     .gov-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .gov-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -104,14 +105,12 @@
     .sec-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 6px 10px; border-radius: 4px; font-size: 11px; }
     .sec-row.alarm { background: var(--danger-bg); border-left: 3px solid var(--danger); color: #fca5a5; }
 
-    /* Баннер миссии */
     .mission-banner { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 16px 20px; margin-top: 16px; display: flex; gap: 16px; align-items: flex-start; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
     .mission-banner__icon { font-size: 24px; background: rgba(56, 189, 248, 0.1); padding: 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); }
     .mission-banner__content h4 { font-size: 13px; color: #fff; margin-bottom: 6px; font-weight: 700; }
     .mission-banner__content p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
     .mission-banner__content b { color: var(--primary); }
 
-    /* Государственный подвал */
     .gov-footer { background: #0d121c; border-top: 1px solid var(--border-color); padding: 24px 20px; margin-top: 40px; }
     .gov-footer__container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 24px; }
     .gov-footer__title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -131,7 +130,6 @@
 </head>
 <body>
 
-  <!-- ВЕРХНЯЯ СИСТЕМНАЯ СТРОКА -->
   <header class="sys-header">
     <div class="sys-brand">
       <span class="status-pulse"></span>
@@ -165,7 +163,6 @@
     <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
   </header>
 
-  <!-- КАРТА -->
   <section class="map-section">
     <div id="map"></div>
     <div id="adminControls" class="map-controls hidden">
@@ -175,7 +172,6 @@
     </div>
   </section>
 
-  <!-- РАБОЧАЯ ОБЛАСТЬ -->
   <main class="workspace">
     <nav class="role-nav">
       <button class="role-tab active" data-tab="citizenTab">🌲 Гражданский контроль и аннотация</button>
@@ -183,10 +179,9 @@
       <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного оператора ЕДДС</button>
     </nav>
 
-    <!-- ВКЛАДКА 1: ГРАЖДАНСКИЙ КОНТУР -->
+    <!-- ВКЛАДКА 1 -->
     <section id="citizenTab" class="tab-view active">
       <div class="gov-grid-2">
-        
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Передать сигнал о задымлении диспетчеру</h3>
@@ -196,7 +191,6 @@
             <p class="section-intro">
               <b>Аннотация:</b> Комплекс предназначен для непрерывного мониторинга лесного фонда и объектов повышенного риска в МО город Новороссийск. Сигнал от очевидцев проходит кросс-проверку по телеметрии датчиков EcoNet Mesh.
             </p>
-
             <form id="citizenForm" class="gov-form">
               <div class="form-row">
                 <label>Объект повышенного риска (все зоны):</label>
@@ -212,11 +206,9 @@
                 <label for="citLoc">Точный ориентир или район:</label>
                 <input type="text" id="citLoc" placeholder="Например: Склон над Борисовкой" required>
               </div>
-
               <div class="legal-notice">
                 ⚠️ <b>Правовое напоминание:</b> Заведомо ложный вызов специализированных служб отвлекает дежурные расчеты и влечет административную ответственность согласно ст. 19.13 КоАП РФ.
               </div>
-
               <button type="submit" class="ctrl-btn ctrl-btn--primary">Отправить сообщение в ЕДДС</button>
             </form>
           </div>
@@ -238,10 +230,8 @@
             </div>
           </div>
         </div>
-
       </div>
 
-      <!-- БЛОК МИССИИ -->
       <div class="mission-banner">
         <div class="mission-banner__icon">🛡️</div>
         <div class="mission-banner__content">
@@ -257,7 +247,7 @@
       </div>
     </section>
 
-    <!-- ВКЛАДКА 2: АППАРАТНЫЙ УЗЕЛ (3D) -->
+    <!-- ВКЛАДКА 2 -->
     <section id="hardwareTab" class="tab-view">
       <div class="gov-grid-2">
         <div class="gov-card">
@@ -269,7 +259,6 @@
             <div id="node3dCanvas" style="height:220px; background:#121824; border-radius:4px;"></div>
           </div>
         </div>
-
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Технологическое превосходство и экономика</h3>
@@ -287,10 +276,9 @@
       </div>
     </section>
 
-    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (3 колонки, синхронизированные) -->
-    <section id="operatorTab" class="tab-view hidden">
+    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (С 3 КОЛОНКАМИ) -->
+    <section id="operatorTab" class="tab-view">
       <div class="gov-grid-3">
-        
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Протокол реагирования и наряды</h3>
@@ -346,24 +334,17 @@
             <div id="sectorsTable" class="sectors-table" style="max-height: 220px;"></div>
           </div>
         </div>
-
       </div>
     </section>
   </main>
 
-  <!-- ГОСУДАРСТВЕННЫЙ ПОДВАЛ -->
   <footer class="gov-footer">
     <div class="gov-footer__container">
       <div class="gov-footer__col">
         <div class="gov-footer__title">АПК «ЭкоСеть» • Новороссийск</div>
-        <p class="gov-footer__text">
-          Система автоматизированного экологического и лесопожарного мониторинга на базе ячеистых радиосетей.
-        </p>
-        <div class="demo-badge">
-          ⚠️ Демонстрационный вариант. Данные носят учебный характер и не являются актуальной оперативной сводкой МЧС.
-        </div>
+        <p class="gov-footer__text">Система автоматизированного экологического и лесопожарного мониторинга на базе ячеистых радиосетей.</p>
+        <div class="demo-badge">⚠️ Демонстрационный вариант. Данные носят учебный характер и не являются актуальной оперативной сводкой МЧС.</div>
       </div>
-
       <div class="gov-footer__col">
         <div class="gov-footer__title">Правовые сведения</div>
         <ul class="gov-footer__links">
@@ -373,17 +354,10 @@
           <li><a href="https://max.ru/u/f9LHodD0cOJhfjbPyB8J_YBIA65_aZXCug_puwAh18SzUtcP_MDRHlaplCA" target="_blank">Профиль разработчика в MAX ↗</a></li>
         </ul>
       </div>
-
       <div class="gov-footer__col">
         <div class="gov-footer__title">Контакты разработчика</div>
-        <p class="gov-footer__text">
-          Автор проекта и концепции:<br>
-          <b>Болобанова Арина Сергеевна</b>
-        </p>
-        <p class="gov-footer__text" style="margin-top: 6px;">
-          Электронная почта:<br>
-          <a href="mailto:arina.bolobanova@yandex.ru" style="color: var(--primary);">arina.bolobanova@yandex.ru</a>
-        </p>
+        <p class="gov-footer__text">Автор проекта и концепции:<br><b>Болобанова Арина Сергеевна</b></p>
+        <p class="gov-footer__text" style="margin-top: 6px;">Электронная почта:<br><a href="mailto:arina.bolobanova@yandex.ru" style="color: var(--primary);">arina.bolobanova@yandex.ru</a></p>
       </div>
     </div>
   </footer>
@@ -391,6 +365,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js?v=9.0"></script>
+  <script src="/static/app.js?v=9.1"></script>
 </body>
 </html>
