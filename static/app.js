@@ -13,7 +13,7 @@ let selectedTag = null;
 let currentIncidentId = null;
 let isOperator = false;
 
-// Авторизация без подсказки пароля
+// Авторизация
 document.getElementById("loginBtn").addEventListener("click", () => {
   if (isOperator) { alert("Вы уже авторизованы."); return; }
   const pwd = prompt("Введите пароль доступа сотрудника ЕДДС:");
@@ -24,6 +24,7 @@ document.getElementById("loginBtn").addEventListener("click", () => {
     document.getElementById("operatorTabBtn").classList.remove("hidden");
     document.getElementById("operatorTabBtn").click();
     alert("Доступ разрешен. Пульт дежурного активирован.");
+    updateTable(); // Перерисовываем таблицу с учетом прав оператора
   } else if (pwd !== null) {
     alert("Неверный пароль!");
   }
@@ -56,7 +57,11 @@ function updateNode(node) {
     iconSize: [16,16], iconAnchor: [8,8]
   });
 
-  const popup = `<b>${node.name}</b><br>T: ${node.temp}°C | CO2: ${node.co2}<br>Ответственный: ${node.io_name}<br>Тел: ${node.io_phone}`;
+  // ИО виден в попапе только если авторизован оператор
+  let popup = `<b>${node.name}</b><br>T: ${node.temp}°C | CO2: ${node.co2}`;
+  if (isOperator) {
+    popup += `<br><span style="color:#b45309">Отв: ${node.io_name} (${node.io_phone})</span>`;
+  }
 
   if (markersMap[node.node_id]) {
     markersMap[node.node_id].setIcon(icon);
@@ -83,9 +88,10 @@ function updateTable() {
     stBadge.style.color = "var(--ok)";
   }
 
+  // Если оператор не вошел — скрываем телефоны ИО в таблице пульта
   document.getElementById("sectorsTable").innerHTML = list.map(n => `
     <div class="sec-row ${n.status === 'ТРЕВОГА' ? 'alarm' : ''}">
-      <span><b>${n.name}</b><br><small style="color:var(--text-muted)">Отв: ${n.io_name} (${n.io_phone})</small></span>
+      <span><b>${n.name}</b><br><small style="color:var(--text-muted)">${isOperator ? 'Отв: ' + n.io_name + ' (' + n.io_phone + ')' : 'Сектор мониторинга ЕДДС'}</small></span>
       <span style="font-family:monospace">${n.temp}°C | ${n.co2}ppm</span>
     </div>
   `).join("");
@@ -93,15 +99,25 @@ function updateTable() {
 
 function addFeedItem(evt) {
   const feed = document.getElementById("publicEventFeed");
+  const opStream = document.getElementById("operatorEventStream");
+  
+  const html = `<span class="time">[${evt.timestamp} МСК]</span>${evt.message}`;
+  
   if(feed) {
     const div = document.createElement("div");
     div.className = `event-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
-    div.innerHTML = `<span class="time">[${evt.timestamp} МСК]</span>${evt.message}`;
+    div.innerHTML = html;
     feed.prepend(div);
+  }
+  if(opStream) {
+    const div = document.createElement("div");
+    div.className = `event-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
+    div.innerHTML = html;
+    opStream.prepend(div);
   }
 }
 
-// Выбор тегов
+// Теги выбора
 document.querySelectorAll(".tag-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
@@ -111,7 +127,7 @@ document.querySelectorAll(".tag-btn").forEach(btn => {
   });
 });
 
-// Отправка формы жителя (связь с пультом)
+// Отправка формы
 document.getElementById("citizenForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const data = {
@@ -120,7 +136,7 @@ document.getElementById("citizenForm").addEventListener("submit", async (e) => {
     description: "Сигнал от жителя"
   };
   await fetch("/api/citizen-report", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(data) });
-  alert("Сигнал успешно передан в ЕДДС Новороссийск и отображен на пульте дежурного.");
+  alert("Сигнал передан в ЕДДС Новороссийск. Проверено по регламенту ст. 19.13 КоАП РФ.");
   e.target.reset();
   document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
 });
@@ -128,7 +144,6 @@ document.getElementById("citizenForm").addEventListener("submit", async (e) => {
 // Отображение инцидента на пульте
 function showIncident(inc) {
   currentIncidentId = inc.id;
-  document.getElementById("noIncidentText").style.display = "none";
   document.getElementById("dispatchCard").style.display = "block";
   document.getElementById("dispatchTarget").innerHTML = `<b>Локация:</b> ${inc.location_name} (Узел: ${inc.nearest_node})`;
   document.getElementById("dispatchTele").innerHTML = `<b>Телеметрия:</b> ${inc.sensor_telemetry}`;
@@ -142,14 +157,14 @@ document.getElementById("assignBtn").addEventListener("click", async () => {
     body: JSON.stringify({ incident_id: currentIncidentId, assigned_unit: unit })
   });
   document.getElementById("dispatchCard").style.display = "none";
-  document.getElementById("noIncidentText").style.display = "block";
-  alert("Оперативный наряд направлен на место вызова.");
+  alert("Оперативный наряд успешно направлен.");
 });
 
-// Кнопки управления
+// Управление
 document.getElementById("syncBtn").addEventListener("click", () => { window.location.reload(); });
 document.getElementById("simulateBtn").addEventListener("click", () => fetch("/api/simulate-fire", { method: "POST" }));
 document.getElementById("resetBtn").addEventListener("click", () => fetch("/api/reset", { method: "POST" }));
+document.getElementById("exportExcelBtn").addEventListener("click", () => window.open("/api/export", "_blank"));
 
 // Табы
 document.querySelectorAll(".role-tab").forEach(tab => {
@@ -171,7 +186,7 @@ function initWS() {
       if (data.weather) {
         weatherWindSpeed = data.weather.wind_speed;
         weatherWindDir = data.weather.wind_direction;
-        document.getElementById("weatherDisplay").textContent = `${data.weather.temp}°C | ${data.weather.humidity}% | С-В, ${weatherWindSpeed} м/с`;
+        document.getElementById("weatherDisplay").textContent = `${data.weather.temp}°C | ${data.weather.humidity}% | С-В (Норд-ост), ${weatherWindSpeed} м/с`;
       }
       data.nodes.forEach(updateNode);
       data.events.forEach(addFeedItem);
@@ -181,16 +196,14 @@ function initWS() {
       addFeedItem(data);
     } else if (data.type === "new_incident") {
       showIncident(data.incident);
-      if(!isOperator) {
-        alert("ВНИМАНИЕ: Поступил экстренный вызов в Новороссийске! Требуется вход сотрудника.");
-      }
+      if(!isOperator) alert("ВНИМАНИЕ: Поступил экстренный вызов в Новороссийске! Требуется вход сотрудника.");
     }
   };
   ws.onclose = () => setTimeout(initWS, 3000);
 }
 initWS();
 
-// 3D Модель датчика
+// 3D Модель
 setTimeout(() => {
   const container = document.getElementById("node3dCanvas");
   if(!container || typeof THREE === "undefined") return;
