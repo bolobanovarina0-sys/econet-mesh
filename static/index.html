@@ -58,7 +58,6 @@
     .role-tab:hover { color: #fff; }
     .role-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-    /* КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обязательный показ активной вкладки */
     .tab-view { display: none !important; padding: 16px 20px; }
     .tab-view.active { display: block !important; }
 
@@ -83,8 +82,8 @@
     .tag-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; transition: 0.15s; }
     .tag-btn:hover { border-color: var(--primary); color: #fff; }
 
-    .gov-form input, .gov-select { background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; padding: 8px 10px; border-radius: 5px; font-family: inherit; font-size: 12px; width: 100%; }
-    .gov-form input:focus, .gov-select:focus { outline: none; border-color: var(--primary); }
+    .gov-form input, .gov-form textarea, .gov-select { background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; padding: 8px 10px; border-radius: 5px; font-family: inherit; font-size: 12px; width: 100%; }
+    .gov-form input:focus, .gov-form textarea:focus, .gov-select:focus { outline: none; border-color: var(--primary); }
 
     .emergency-phones { display: flex; flex-direction: column; gap: 6px; }
     .phone-card { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 5px; padding: 8px 12px; text-decoration: none; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); font-size: 12px; transition: border-color 0.15s; }
@@ -206,6 +205,11 @@
                 <label for="citLoc">Точный ориентир или район:</label>
                 <input type="text" id="citLoc" placeholder="Например: Склон над Борисовкой" required>
               </div>
+              <!-- ВОССТАНОВЛЕНО ПОЛЕ ОПИСАНИЯ СИТУАЦИИ -->
+              <div class="form-row">
+                <label for="citDesc">Описание ситуации и признаки горения:</label>
+                <textarea id="citDesc" rows="2" placeholder="Например: Густой серый дым, запах гари, видимость падает..." required></textarea>
+              </div>
               <div class="legal-notice">
                 ⚠️ <b>Правовое напоминание:</b> Заведомо ложный вызов специализированных служб отвлекает дежурные расчеты и влечет административную ответственность согласно ст. 19.13 КоАП РФ.
               </div>
@@ -276,7 +280,7 @@
       </div>
     </section>
 
-    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (С 3 КОЛОНКАМИ) -->
+    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА -->
     <section id="operatorTab" class="tab-view">
       <div class="gov-grid-3">
         <div class="gov-card">
@@ -365,6 +369,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js?v=9.1"></script>
+  <script src="/static/app.js?v=9.2"></script>
 </body>
 </html>
