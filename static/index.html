@@ -3,134 +3,178 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>АПК ЭкоСеть — Мониторинг (г. Новороссийск)</title>
+  <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/style.css?v=3.0">
+  <link rel="stylesheet" href="/static/style.css?v=5.0">
 </head>
 <body>
 
-  <!-- ШАПКА -->
-  <header class="header">
-    <div class="header-brand">
-      <div class="logo-box">ЭКОСЕТЬ</div>
-      <div class="brand-titles">
-        <h1>ЕДДС Новороссийск</h1>
-        <p>Аппаратно-программный комплекс (Зона покрытия: г. Новороссийск)</p>
+  <!-- ВЕРХНЯЯ СИСТЕМНАЯ СТРОКА -->
+  <header class="sys-header">
+    <div class="sys-brand">
+      <span class="status-pulse"></span>
+      <div>
+        <div class="sys-title">
+          АПК ЭКОСЕТЬ <span class="sys-tag">ЕДДС-112 • НОВОРОССИЙСК</span>
+        </div>
+        <div class="sys-sub">Автономная ячеистая LoRa-сеть раннего обнаружения возгораний</div>
       </div>
     </div>
-    <div class="header-metrics">
-      <div class="metric weather-widget">
-        <span class="m-lbl">Погода (Маркотх):</span> 
-        <strong id="weatherTemp">--°C</strong> <span style="color:#cbd5e1">|</span> 
-        <strong id="weatherHum">--%</strong> <span style="color:#cbd5e1">|</span> 
-        <strong id="weatherWind">-- м/с (С-В)</strong>
+
+    <div class="sys-metrics">
+      <div class="metric-box">
+        <span class="metric-lbl">Маркотх:</span>
+        <span class="metric-val" id="weatherDisplay">--°C | --% | С-В, -- м/с</span>
       </div>
-      <div class="metric"><span class="m-lbl">Объекты:</span> <span id="activeNodesCount">10/10</span></div>
-      <div class="metric"><span class="m-lbl">Статус:</span> <span id="networkStatusBadge" style="color:var(--ok)">НОРМА</span></div>
+      <div class="metric-box">
+        <span class="metric-lbl">Узлов:</span>
+        <span class="metric-val" id="activeNodesCount">10 / 10</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-lbl">Статус:</span>
+        <span class="metric-val" id="networkStatusBadge" style="color: var(--ok);">НОРМА</span>
+      </div>
     </div>
-    <button id="loginBtn" class="btn btn-login">Вход для сотрудников</button>
+
+    <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
   </header>
 
   <!-- КАРТА -->
   <section class="map-section">
     <div id="map"></div>
-    <div id="adminControls" class="admin-controls hidden">
-      <button id="syncBtn" class="btn btn-sync">🔄 Обновить связь</button>
-      <button id="simulateBtn" class="btn btn-danger">🔥 Симуляция ЧС</button>
-      <button id="resetBtn" class="btn btn-secondary">Сброс системы</button>
+    <div id="adminControls" class="map-controls hidden">
+      <button id="syncBtn" class="ctrl-btn ctrl-btn--secondary">🔄 Обновить</button>
+      <button id="simulateBtn" class="ctrl-btn ctrl-btn--danger">🔥 Тест ЧС</button>
+      <button id="resetBtn" class="ctrl-btn ctrl-btn--secondary">Сброс</button>
     </div>
   </section>
 
   <!-- РАБОЧАЯ ОБЛАСТЬ -->
   <main class="workspace">
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="citizenTab">Гражданский контроль</button>
-      <button class="tab-btn" data-tab="hardwareTab">Аппаратный модуль</button>
-      <button id="operatorTabBtn" class="tab-btn hidden" data-tab="operatorTab">Пульт дежурного</button>
+    <nav class="role-nav">
+      <button class="role-tab active" data-tab="citizenTab">🌲 Гражданский контроль</button>
+      <button class="role-tab" data-tab="hardwareTab">🔬 Аппаратный модуль (3D)</button>
+      <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного ЕДДС</button>
     </nav>
 
-    <!-- ВКЛАДКА: ГРАЖДАНЕ -->
-    <section id="citizenTab" class="tab-content active">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">Передать сигнал диспетчеру</div>
-          <div class="card-body">
-            <p class="help-text">Отправка сигнала происходит анонимно. Координаты сверяются с датчиками. <b>Система обслуживает только территорию МО город Новороссийск.</b></p>
-            <form id="citizenForm">
-              <label>Быстрый выбор объекта:</label>
-              <div class="tags">
-                <button type="button" class="tag" data-sec="УЗЕЛ-01">Полигон г. Щелба</button>
-                <button type="button" class="tag" data-sec="УЗЕЛ-02">Сухая Щель</button>
-                <button type="button" class="tag" data-sec="УЗЕЛ-03">Карьер Пролетарий</button>
+    <!-- ВКЛАДКА 1: ГРАЖДАНСКИЙ КОНТУР -->
+    <section id="citizenTab" class="tab-view active">
+      <div class="gov-grid-2">
+        
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Передать сигнал диспетчеру</h3>
+            <span class="gov-pill">Анонимно</span>
+          </div>
+          <div class="gov-card__body">
+            <p class="section-intro">
+              Заметили дым или огонь? Выберите объект или укажите ориентир в <b>МО город Новороссийск</b>.
+            </p>
+            <form id="citizenForm" class="gov-form">
+              <div class="form-row">
+                <label>Объект повышенного риска:</label>
+                <div class="fast-tags">
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-01">Полигон г. Щелба</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-02">Сухая Щель</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-03">Карьер Пролетарий</button>
+                </div>
               </div>
-              <label>Описание ситуации:</label>
-              <input type="text" id="citLoc" placeholder="Ориентир (например: Склон горы)" required>
-              <button type="submit" class="btn btn-primary" style="margin-top:10px; width:100%">Отправить сообщение</button>
+              <div class="form-row">
+                <label for="citLoc">Точный ориентир:</label>
+                <input type="text" id="citLoc" placeholder="Например: Склон над Борисовкой" required>
+              </div>
+              <button type="submit" class="ctrl-btn ctrl-btn--primary">Отправить сообщение диспетчеру</button>
             </form>
           </div>
         </div>
-        
-        <div class="card">
-          <div class="card-header">Службы экстренного реагирования г. Новороссийск</div>
-          <div class="card-body">
-            <a href="tel:112" class="phone-link"><b>112</b> — Единая служба спасения</a>
-            <a href="tel:+78617767276" class="phone-link"><b>+7 (8617) 76-72-76</b> — ЕДДС Новороссийск</a>
+
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Экстренные службы и лента событий</h3>
+            <span class="gov-pill ok-pill">МСК Время</span>
+          </div>
+          <div class="gov-card__body">
+            <div class="emergency-phones" style="margin-bottom: 12px;">
+              <a href="tel:112" class="phone-card"><span>112</span> Единая служба спасения</a>
+              <a href="tel:+78617767276" class="phone-card"><span>+7 (8617) 76-72-76</span> ЕДДС Новороссийск</a>
+            </div>
             <div class="feed-box">
-              <h4>Публичная лента событий (МСК):</h4>
-              <div id="publicEventFeed" class="feed"></div>
+              <h4 style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Публичная лента событий:</h4>
+              <div id="publicEventFeed" class="event-feed"></div>
             </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ВКЛАДКА 2: АППАРАТНЫЙ УЗЕЛ (3D) -->
+    <section id="hardwareTab" class="tab-view">
+      <div class="gov-grid-2">
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Интерактивная 3D-модель EcoNet-Node</h3>
+            <span class="gov-pill">Three.js</span>
+          </div>
+          <div class="gov-card__body">
+            <div id="node3dCanvas" style="height:220px; background:#121824; border-radius:4px;"></div>
+          </div>
+        </div>
+
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Спецификация и экономика</h3>
+            <span class="gov-pill ok-pill">2 150 ₽ / шт</span>
+          </div>
+          <div class="gov-card__body" style="font-size:12px; display:flex; flex-direction:column; gap:8px;">
+            <div><b>Микроконтроллер:</b> ESP32-S3 (Dual-Core)</div>
+            <div><b>Связь:</b> LoRa SX1262 (868 МГц, Mesh до 10 км)</div>
+            <div><b>Сенсоры:</b> Bosch BME280 + CCS811 (CO2 / пиролиз)</div>
+            <div><b>Автономность:</b> LiFePO4 + Солнечная панель (от 3 лет)</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ВКЛАДКА: АППАРАТ -->
-    <section id="hardwareTab" class="tab-content">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">Модель датчика</div>
-          <div class="card-body"><div id="node3dCanvas" style="height:250px; background:#f1f5f9; border-radius:6px;"></div></div>
-        </div>
-        <div class="card">
-          <div class="card-header">Спецификация</div>
-          <div class="card-body">
-            <ul class="spec-list" style="padding-left: 18px; line-height: 1.6; font-size: 13px;">
-              <li><b>Ядро:</b> Микроконтроллер ESP32-S3</li>
-              <li><b>Связь:</b> Радиомодуль LoRa SX1262 (868 МГц)</li>
-              <li><b>Сенсоры:</b> Bosch BME280, газоанализатор CCS811</li>
-              <li><b>Питание:</b> Аккумулятор LiFePO4 + Солнечная панель</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ВКЛАДКА: ПУЛЬТ (Скрыта) -->
-    <section id="operatorTab" class="tab-content hidden">
-      <div class="grid-2">
-        <div class="card dispatch-card" id="dispatchCard" style="display:none;">
-          <div class="card-header bg-red">ВНИМАНИЕ: ЗАФИКСИРОВАН ОЧАГ</div>
-          <div class="card-body">
-            <p id="dispatchTarget"><b>Локация:</b> ...</p>
-            <p id="dispatchTele"><b>Телеметрия:</b> ...</p>
-            <div class="io-box">
-              <span id="dispatchIOName">Дежурный: ...</span><br>
-              <span id="dispatchIOPhone">Тел: ...</span>
-            </div>
-            <select id="rescueUnit" class="input-select" style="margin-top:10px;">
-              <option>ПСЧ-8 (ул. Котовского)</option>
-              <option>Патруль Лесхоза</option>
-            </select>
-            <button id="assignBtn" class="btn btn-danger" style="margin-top:10px; width:100%">Подтвердить выезд</button>
-          </div>
-        </div>
+    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (Компактный и связанный) -->
+    <section id="operatorTab" class="tab-view hidden">
+      <div class="gov-grid-2">
         
-        <div class="card">
-          <div class="card-header">Состояние участков (г. Новороссийск)</div>
-          <div class="card-body">
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Обращения и оперативные наряды</h3>
+            <span id="operatorIncidentBadge" class="gov-pill">Дежурство</span>
+          </div>
+          <div class="gov-card__body">
+            <div id="dispatchCard" class="dispatch-alert" style="display: none;">
+              <div class="dispatch-alert__title">ПОСТУПИЛО ОБРАЩЕНИЕ / ОЧАГ</div>
+              <div id="dispatchTarget" class="dispatch-alert__desc">Локация: ...</div>
+              <div id="dispatchTele" class="dispatch-alert__sub">Телеметрия: ...</div>
+              <div id="dispatchIO" style="font-size:11px; margin-bottom:8px; color:#fde047; font-weight:600;">Ответственный: ...</div>
+              
+              <label style="font-size:11px; color:var(--text-muted);">Назначить расчет:</label>
+              <select id="rescueUnit" class="gov-select" style="margin-top:4px;">
+                <option>ПСЧ-8 (ул. Котовского) — АЦ-40</option>
+                <option>Патруль Новороссийского лесхоза</option>
+              </select>
+              <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="width:100%; margin-top:8px;">Подтвердить выезд</button>
+            </div>
+            
+            <div style="font-size:11px; color:var(--text-muted); text-align:center; padding: 20px 0;" id="noIncidentText">
+              Нет активных вызовов, требующих подтверждения. Система работает в штатном режиме.
+            </div>
+          </div>
+        </div>
+
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Состояние участков (Новороссийск)</h3>
+          </div>
+          <div class="gov-card__body">
             <div id="sectorsTable" class="sectors-table"></div>
           </div>
         </div>
+
       </div>
     </section>
   </main>
@@ -138,6 +182,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js?v=3.0"></script>
+  <script src="/static/app.js?v=5.0"></script>
 </body>
 </html>
