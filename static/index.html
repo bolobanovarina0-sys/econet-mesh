@@ -44,9 +44,11 @@
     .map-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; background: rgba(18, 24, 36, 0.85); backdrop-filter: blur(4px); padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); }
     .hidden { display: none !important; }
 
-    .ctrl-btn { padding: 7px 12px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; border: none; transition: background 0.15s; display: inline-flex; align-items: center; justify-content: center; }
+    .ctrl-btn { padding: 7px 12px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; border: none; transition: background 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
     .ctrl-btn--danger { background: var(--danger); color: #fff; }
     .ctrl-btn--danger:hover { background: #dc2626; }
+    .ctrl-btn--warning { background: #d97706; color: #fff; }
+    .ctrl-btn--warning:hover { background: #b45309; }
     .ctrl-btn--secondary { background: #334155; color: #fff; border: 1px solid #475569; }
     .ctrl-btn--secondary:hover { background: #475569; }
     .ctrl-btn--primary { background: var(--primary); color: #0f172a; width: 100%; padding: 10px; font-weight: 700; }
@@ -159,7 +161,10 @@
       </div>
     </div>
 
-    <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button id="soundToggleBtn" class="ctrl-btn ctrl-btn--secondary" title="Включить / отключить звук сирены">🔊 Звук: ВКЛ</button>
+      <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
+    </div>
   </header>
 
   <section class="map-section">
@@ -301,7 +306,11 @@
                 <option>Патруль Новороссийского лесхоза</option>
                 <option>ПСЧ-22 (Шесхарис) — Горный ход</option>
               </select>
-              <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="width:100%; margin-top:8px;">Подтвердить и направить наряд</button>
+              <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="flex: 1;">Подтвердить выезд</button>
+                <button id="rejectBtn" class="ctrl-btn ctrl-btn--warning" style="flex: 1;" title="Отклонить как ложный вызов">❌ Отклонить</button>
+                <button id="pdfAktBtn" class="ctrl-btn ctrl-btn--secondary" style="width: 100%;" title="Скачать акт КЧС">📄 Скачать акт (PDF)</button>
+              </div>
             </div>
 
             <div id="noIncidentText" style="font-size:11px; color:var(--text-muted); text-align:center; padding: 15px 0;">
@@ -382,6 +391,29 @@
     let selectedTag = null;
     let currentIncidentId = null;
     let isOperator = false;
+    let soundEnabled = true;
+
+    function playAlarmBeep() {
+      if (!soundEnabled) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      } catch(e) {}
+    }
+
+    document.getElementById("soundToggleBtn").addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById("soundToggleBtn");
+      btn.textContent = soundEnabled ? "🔊 Звук: ВКЛ" : "🔇 Звук: ВЫКЛ";
+    });
 
     document.getElementById("loginBtn").addEventListener("click", () => {
       if (isOperator) { alert("Вы уже авторизованы."); return; }
@@ -476,6 +508,9 @@
         div.innerHTML = html;
         opStream.prepend(div);
       }
+      if(evt.level === 'ALARM') {
+        playAlarmBeep();
+      }
     }
 
     document.querySelectorAll(".tag-btn").forEach(btn => {
@@ -510,6 +545,7 @@
       document.getElementById("dispatchTarget").innerHTML = `<b>Локация:</b> ${inc.location_name} (Узел: ${inc.nearest_node})`;
       document.getElementById("dispatchTele").innerHTML = `<b>Телеметрия:</b> ${inc.sensor_telemetry}`;
       document.getElementById("dispatchIO").innerHTML = `Ответственный ИО: <b>${inc.io_name}</b> (${inc.io_phone})`;
+      playAlarmBeep();
     }
 
     document.getElementById("assignBtn").addEventListener("click", async () => {
@@ -523,6 +559,29 @@
       document.getElementById("noIncidentText").style.display = "block";
       alert("Оперативный наряд успешно направлен.");
       currentIncidentId = null;
+    });
+
+    document.getElementById("rejectBtn").addEventListener("click", async () => {
+      if (!currentIncidentId) return;
+      const reason = prompt("Укажите причину отклонения вызова:", "Ложный вызов (контрольный обход)");
+      if (reason === null) return;
+      
+      await fetch("/api/operator/reject", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ incident_id: currentIncidentId, reason: reason })
+      });
+      document.getElementById("dispatchCard").style.display = "none";
+      document.getElementById("noIncidentText").style.display = "block";
+      alert("Вызов успешно отклонен как ложный.");
+      currentIncidentId = null;
+    });
+
+    document.getElementById("pdfAktBtn").addEventListener("click", () => {
+      if (!currentIncidentId) {
+        window.open("/api/export-pdf/ОБР-101", "_blank");
+      } else {
+        window.open(`/api/export-pdf/${currentIncidentId}`, "_blank");
+      }
     });
 
     document.getElementById("syncBtn").addEventListener("click", () => { window.location.reload(); });
