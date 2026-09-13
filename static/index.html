@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>АПК ЭкоСеть — Мониторинг (г. Новороссийск)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=3.0">
 </head>
 <body>
 
@@ -28,14 +28,12 @@
       <div class="metric"><span class="m-lbl">Объекты:</span> <span id="activeNodesCount">10/10</span></div>
       <div class="metric"><span class="m-lbl">Статус:</span> <span id="networkStatusBadge" style="color:var(--ok)">НОРМА</span></div>
     </div>
-    <!-- Кнопка авторизации -->
     <button id="loginBtn" class="btn btn-login">Вход для сотрудников</button>
   </header>
 
   <!-- КАРТА -->
   <section class="map-section">
     <div id="map"></div>
-    <!-- Панель управления (скрыта до авторизации) -->
     <div id="adminControls" class="admin-controls hidden">
       <button id="syncBtn" class="btn btn-sync">🔄 Обновить связь</button>
       <button id="simulateBtn" class="btn btn-danger">🔥 Симуляция ЧС</button>
@@ -43,12 +41,11 @@
     </div>
   </section>
 
+  <!-- РАБОЧАЯ ОБЛАСТЬ -->
   <main class="workspace">
-    <!-- ТАБЫ -->
     <nav class="tabs">
       <button class="tab-btn active" data-tab="citizenTab">Гражданский контроль</button>
       <button class="tab-btn" data-tab="hardwareTab">Аппаратный модуль</button>
-      <!-- Вкладка оператора (скрыта) -->
       <button id="operatorTabBtn" class="tab-btn hidden" data-tab="operatorTab">Пульт дежурного</button>
     </nav>
 
@@ -79,7 +76,7 @@
             <a href="tel:112" class="phone-link"><b>112</b> — Единая служба спасения</a>
             <a href="tel:+78617767276" class="phone-link"><b>+7 (8617) 76-72-76</b> — ЕДДС Новороссийск</a>
             <div class="feed-box">
-              <h4>Публичная лента событий:</h4>
+              <h4>Публичная лента событий (МСК):</h4>
               <div id="publicEventFeed" class="feed"></div>
             </div>
           </div>
@@ -97,7 +94,7 @@
         <div class="card">
           <div class="card-header">Спецификация</div>
           <div class="card-body">
-            <ul class="spec-list">
+            <ul class="spec-list" style="padding-left: 18px; line-height: 1.6; font-size: 13px;">
               <li><b>Ядро:</b> Микроконтроллер ESP32-S3</li>
               <li><b>Связь:</b> Радиомодуль LoRa SX1262 (868 МГц)</li>
               <li><b>Сенсоры:</b> Bosch BME280, газоанализатор CCS811</li>
@@ -117,7 +114,7 @@
             <p id="dispatchTarget"><b>Локация:</b> ...</p>
             <p id="dispatchTele"><b>Телеметрия:</b> ...</p>
             <div class="io-box">
-              <span id="dispatchIOName">Дежурный: ...</span>
+              <span id="dispatchIOName">Дежурный: ...</span><br>
               <span id="dispatchIOPhone">Тел: ...</span>
             </div>
             <select id="rescueUnit" class="input-select" style="margin-top:10px;">
@@ -129,7 +126,7 @@
         </div>
         
         <div class="card">
-          <div class="card-header">Состояние участков</div>
+          <div class="card-header">Состояние участков (г. Новороссийск)</div>
           <div class="card-body">
             <div id="sectorsTable" class="sectors-table"></div>
           </div>
@@ -141,6 +138,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=3.0"></script>
 </body>
 </html>
