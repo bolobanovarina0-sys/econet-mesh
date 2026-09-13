@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/style.css?v=5.0">
+  <link rel="stylesheet" href="/static/style.css?v=6.0">
 </head>
 <body>
 
@@ -17,21 +17,26 @@
         <div class="sys-title">
           АПК ЭКОСЕТЬ <span class="sys-tag">ЕДДС-112 • НОВОРОССИЙСК</span>
         </div>
-        <div class="sys-sub">Автономная ячеистая LoRa-сеть раннего обнаружения возгораний</div>
+        <div class="sys-sub">Автономная ячеистая LoRa-сеть раннего обнаружения ландшафтных возгораний</div>
       </div>
     </div>
 
+    <!-- Метеосводка и роза ветров -->
     <div class="sys-metrics">
       <div class="metric-box">
-        <span class="metric-lbl">Маркотх:</span>
-        <span class="metric-val" id="weatherDisplay">--°C | --% | С-В, -- м/с</span>
+        <span class="metric-lbl">Метео (Маркотх):</span>
+        <span class="metric-val" id="weatherDisplay">--°C | --% | С-В (Норд-ост), -- м/с</span>
       </div>
       <div class="metric-box">
-        <span class="metric-lbl">Узлов:</span>
+        <span class="metric-lbl">Класс опасности:</span>
+        <span class="metric-val danger-text">IV (Высокий)</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-lbl">Узлов в сети:</span>
         <span class="metric-val" id="activeNodesCount">10 / 10</span>
       </div>
       <div class="metric-box">
-        <span class="metric-lbl">Статус:</span>
+        <span class="metric-lbl">Периметр:</span>
         <span class="metric-val" id="networkStatusBadge" style="color: var(--ok);">НОРМА</span>
       </div>
     </div>
@@ -39,12 +44,12 @@
     <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
   </header>
 
-  <!-- КАРТА -->
+  <!-- КАРТА-ХЭДЕР -->
   <section class="map-section">
     <div id="map"></div>
     <div id="adminControls" class="map-controls hidden">
-      <button id="syncBtn" class="ctrl-btn ctrl-btn--secondary">🔄 Обновить</button>
-      <button id="simulateBtn" class="ctrl-btn ctrl-btn--danger">🔥 Тест ЧС</button>
+      <button id="syncBtn" class="ctrl-btn ctrl-btn--secondary">🔄 Синхронизировать</button>
+      <button id="simulateBtn" class="ctrl-btn ctrl-btn--danger">🔥 Симуляция ЧС</button>
       <button id="resetBtn" class="ctrl-btn ctrl-btn--secondary">Сброс</button>
     </div>
   </section>
@@ -52,38 +57,46 @@
   <!-- РАБОЧАЯ ОБЛАСТЬ -->
   <main class="workspace">
     <nav class="role-nav">
-      <button class="role-tab active" data-tab="citizenTab">🌲 Гражданский контроль</button>
+      <button class="role-tab active" data-tab="citizenTab">🌲 Гражданский контроль и аннотация</button>
       <button class="role-tab" data-tab="hardwareTab">🔬 Аппаратный модуль (3D)</button>
-      <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного ЕДДС</button>
+      <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного оператора ЕДДС</button>
     </nav>
 
-    <!-- ВКЛАДКА 1: ГРАЖДАНСКИЙ КОНТУР -->
+    <!-- ВКЛАДКА 1: ГРАЖДАНСКИЙ КОНТУР С АННОТАЦИЕЙ И КОАП -->
     <section id="citizenTab" class="tab-view active">
       <div class="gov-grid-2">
         
         <div class="gov-card">
           <div class="gov-card__header">
-            <h3>Передать сигнал диспетчеру</h3>
+            <h3>Передать сигнал о задымлении диспетчеру</h3>
             <span class="gov-pill">Анонимно</span>
           </div>
           <div class="gov-card__body">
+            <!-- Аннотация к системе -->
             <p class="section-intro">
-              Заметили дым или огонь? Выберите объект или укажите ориентир в <b>МО город Новороссийск</b>.
+              <b>Аннотация:</b> Комплекс предназначен для непрерывного мониторинга лесного фонда и объектов повышенного риска в МО город Новороссийск. Сигнал от очевидцев проходит автоматическую кросс-проверку по телеметрии датчиков EcoNet Mesh перед выездом расчетов.
             </p>
+
             <form id="citizenForm" class="gov-form">
               <div class="form-row">
                 <label>Объект повышенного риска:</label>
                 <div class="fast-tags">
-                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-01">Полигон г. Щелба</button>
-                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-02">Сухая Щель</button>
-                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-03">Карьер Пролетарий</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-01">Полигон ТКО г. Щелба</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-02">Сухая Щель (Заказник)</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-03">Карьер «Пролетарий»</button>
                 </div>
               </div>
               <div class="form-row">
-                <label for="citLoc">Точный ориентир:</label>
+                <label for="citLoc">Точный ориентир или район:</label>
                 <input type="text" id="citLoc" placeholder="Например: Склон над Борисовкой" required>
               </div>
-              <button type="submit" class="ctrl-btn ctrl-btn--primary">Отправить сообщение диспетчеру</button>
+
+              <!-- Предупреждение о добросовестности (ст. 19.13 КоАП РФ) -->
+              <div class="legal-notice">
+                ⚠️ <b>Правовое напоминание:</b> Заведомо ложный вызов специализированных служб отвлекает дежурные расчеты и влечет административную ответственность согласно ст. 19.13 КоАП РФ. Передавайте сигнал только при реальной угрозе.
+              </div>
+
+              <button type="submit" class="ctrl-btn ctrl-btn--primary">Отправить сообщение в ЕДДС</button>
             </form>
           </div>
         </div>
@@ -113,7 +126,7 @@
       <div class="gov-grid-2">
         <div class="gov-card">
           <div class="gov-card__header">
-            <h3>Интерактивная 3D-модель EcoNet-Node</h3>
+            <h3>Интерактивная 3D-модель EcoNet-Node v1.2</h3>
             <span class="gov-pill">Three.js</span>
           </div>
           <div class="gov-card__body">
@@ -127,51 +140,73 @@
             <span class="gov-pill ok-pill">2 150 ₽ / шт</span>
           </div>
           <div class="gov-card__body" style="font-size:12px; display:flex; flex-direction:column; gap:8px;">
-            <div><b>Микроконтроллер:</b> ESP32-S3 (Dual-Core)</div>
+            <div><b>Микроконтроллер:</b> ESP32-S3 (Dual-Core 240MHz)</div>
             <div><b>Связь:</b> LoRa SX1262 (868 МГц, Mesh до 10 км)</div>
-            <div><b>Сенсоры:</b> Bosch BME280 + CCS811 (CO2 / пиролиз)</div>
-            <div><b>Автономность:</b> LiFePO4 + Солнечная панель (от 3 лет)</div>
+            <div><b>Сенсоры:</b> Bosch BME280 + CCS811 (Угарный газ / пиролиз)</div>
+            <div><b>Автономность:</b> LiFePO4 18650 + Солнечная панель (от 3 лет)</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (Компактный и связанный) -->
+    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (С 3 ПОЛНОЦЕННЫМИ КОЛОНКАМИ И ИО) -->
     <section id="operatorTab" class="tab-view hidden">
-      <div class="gov-grid-2">
+      <div class="gov-grid-3">
         
+        <!-- Колонка 1: Протокол реагирования и наряды -->
         <div class="gov-card">
           <div class="gov-card__header">
-            <h3>Обращения и оперативные наряды</h3>
+            <h3>Протокол реагирования и наряды</h3>
             <span id="operatorIncidentBadge" class="gov-pill">Дежурство</span>
           </div>
           <div class="gov-card__body">
             <div id="dispatchCard" class="dispatch-alert" style="display: none;">
-              <div class="dispatch-alert__title">ПОСТУПИЛО ОБРАЩЕНИЕ / ОЧАГ</div>
+              <div class="dispatch-alert__title">ТРЕБУЕТСЯ РЕАГИРОВАНИЕ</div>
               <div id="dispatchTarget" class="dispatch-alert__desc">Локация: ...</div>
               <div id="dispatchTele" class="dispatch-alert__sub">Телеметрия: ...</div>
-              <div id="dispatchIO" style="font-size:11px; margin-bottom:8px; color:#fde047; font-weight:600;">Ответственный: ...</div>
-              
-              <label style="font-size:11px; color:var(--text-muted);">Назначить расчет:</label>
+              <!-- Ответственный ИО виден только оператору -->
+              <div class="io-box" id="dispatchIO" style="margin: 8px 0; padding:6px; background:#fffbeb; border:1px solid #fcd34d; font-size:11px; border-radius:4px; color:#b45309;">
+                Ответственный ИО: ...
+              </div>
+              <label style="font-size:11px; color:var(--text-muted);">Назначить дежурный расчет:</label>
               <select id="rescueUnit" class="gov-select" style="margin-top:4px;">
                 <option>ПСЧ-8 (ул. Котовского) — АЦ-40</option>
                 <option>Патруль Новороссийского лесхоза</option>
+                <option>ПСЧ-22 (Шесхарис) — Горный ход</option>
               </select>
-              <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="width:100%; margin-top:8px;">Подтвердить выезд</button>
+              <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="width:100%; margin-top:8px;">Подтвердить и направить наряд</button>
             </div>
             
-            <div style="font-size:11px; color:var(--text-muted); text-align:center; padding: 20px 0;" id="noIncidentText">
-              Нет активных вызовов, требующих подтверждения. Система работает в штатном режиме.
+            <div class="checklist" style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+              <label><input type="checkbox" checked disabled> Опрос LoRa-периметра (868 МГц)</label>
+              <label><input type="checkbox" checked disabled> Мониторинг розы ветров Маркотха</label>
+              <label><input type="checkbox" checked disabled> Сверка контактов ИО по участку</label>
             </div>
+
+            <button id="exportExcelBtn" class="ctrl-btn ctrl-btn--secondary" style="margin-top:14px; width:100%;">
+              📊 Выгрузить сводку ЕДДС (Excel)
+            </button>
           </div>
         </div>
 
+        <!-- Колонка 2: Оперативный журнал событий -->
         <div class="gov-card">
           <div class="gov-card__header">
-            <h3>Состояние участков (Новороссийск)</h3>
+            <h3>Оперативный журнал событий</h3>
+            <span class="live-dot"></span>
           </div>
           <div class="gov-card__body">
-            <div id="sectorsTable" class="sectors-table"></div>
+            <div id="operatorEventStream" class="event-feed" style="height: 220px;"></div>
+          </div>
+        </div>
+
+        <!-- Колонка 3: Секторы периметра с ИО -->
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Секторы и ответственные ИО</h3>
+          </div>
+          <div class="gov-card__body">
+            <div id="sectorsTable" class="sectors-table" style="max-height: 220px;"></div>
           </div>
         </div>
 
@@ -182,6 +217,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js?v=5.0"></script>
+  <script src="/static/app.js?v=6.0"></script>
 </body>
 </html>
