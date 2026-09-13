@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/style.css?v=7.0">
+  <link rel="stylesheet" href="/static/style.css?v=8.0">
 </head>
 <body>
 
@@ -118,9 +118,24 @@
         </div>
 
       </div>
+
+      <!-- БЛОК НИЖЕ: МАССИВ ОПИСАНИЯ МИССИИ -->
+      <div class="mission-banner">
+        <div class="mission-banner__icon">🛡️</div>
+        <div class="mission-banner__content">
+          <h4>О миссии комплекса АПК «ЭкоСеть»</h4>
+          <p>
+            Это не просто форма обратной связи или классический диспетчерский вызов. Данная платформа реализует концепцию 
+            <b>проактивного превентивного мониторинга</b>. Сообщения граждан не уходят в «слепую» очередь — они мгновенно 
+            сопоставляются с показателями автономных газоанализаторов (CO2) и термодатчиков ближайших узлов LoRa-mesh. 
+            Такой подход исключает человеческий фактор, локализует очаги тления на свалках и в лесных массивах на ранней стадии 
+            и предотвращает масштабные верховые пожары в условиях новороссийского норд-оста.
+          </p>
+        </div>
+      </div>
     </section>
 
-    <!-- ВКЛАДКА 2: АППАРАТНЫЙ УЗЕЛ (3D с тезисами вместо цены) -->
+    <!-- ВКЛАДКА 2: АППАРАТНЫЙ УЗЕЛ (3D) -->
     <section id="hardwareTab" class="tab-view">
       <div class="gov-grid-2">
         <div class="gov-card">
@@ -214,9 +229,46 @@
     </section>
   </main>
 
+  <!-- ГОСУДАРСТВЕННЫЙ ПОДВАЛ -->
+  <footer class="gov-footer">
+    <div class="gov-footer__container">
+      <div class="gov-footer__col">
+        <div class="gov-footer__title">АПК «ЭкоСеть» • Новороссийск</div>
+        <p class="gov-footer__text">
+          Система автоматизированного экологического и лесопожарного мониторинга на базе ячеистых радиосетей.
+        </p>
+        <div class="demo-badge">
+          ⚠️ Демонстрационный вариант. Данные носят учебный характер и не являются актуальной оперативной сводкой МЧС.
+        </div>
+      </div>
+
+      <div class="gov-footer__col">
+        <div class="gov-footer__title">Правовые сведения</div>
+        <ul class="gov-footer__links">
+          <li><a href="#">Политика обработки персональных данных (152-ФЗ)</a></li>
+          <li><a href="#">Регламент реагирования ЕДДС-112</a></li>
+          <li><a href="#">Свидетельство о регистрации в реестре ПО РФ № 2026618492</a></li>
+          <li><a href="https://max.ru/u/f9LHodD0cOJhfjbPyB8J_YBIA65_aZXCug_puwAh18SzUtcP_MDRHlaplCA" target="_blank">Профиль разработчика в MAX ↗</a></li>
+        </ul>
+      </div>
+
+      <div class="gov-footer__col">
+        <div class="gov-footer__title">Контакты разработчика</div>
+        <p class="gov-footer__text">
+          Автор проекта и концепции:<br>
+          <b>Болобанова Арина Сергеевна</b>
+        </p>
+        <p class="gov-footer__text" style="margin-top: 6px;">
+          Электронная почта:<br>
+          <a href="mailto:arina.bolobanova@yandex.ru" style="color: var(--primary);">arina.bolobanova@yandex.ru</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js?v=7.0"></script>
+  <script src="/static/app.js?v=8.0"></script>
 </body>
 </html>
