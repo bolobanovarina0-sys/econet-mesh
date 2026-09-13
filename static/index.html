@@ -1,4 +1,380 @@
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    :root {
+      --bg-main: #121824;
+      --bg-surface: #1a2233;
+      --bg-card: #202b40;
+      --border-color: #2e3d59;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --ok: #22c55e;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SF Mono", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+    html, body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 13px; line-height: 1.45; }
+
+    .sys-header { background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; z-index: 1001; }
+    .sys-brand { display: flex; align-items: center; gap: 10px; }
+    .status-pulse { width: 9px; height: 9px; background: var(--ok); border-radius: 50%; box-shadow: 0 0 6px var(--ok); }
+    .sys-title { font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .sys-tag { font-size: 10px; background: #0f172a; color: var(--primary); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); }
+    .sys-sub { font-size: 11px; color: var(--text-muted); }
+
+    .sys-metrics { display: flex; gap: 8px; flex-wrap: wrap; }
+    .metric-box { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px 10px; font-size: 11px; display: flex; gap: 6px; align-items: center; }
+    .metric-lbl { color: var(--text-muted); }
+    .metric-val { font-weight: 600; color: #fff; font-family: var(--font-mono); }
+    .danger-text { color: #f87171 !important; }
+
+    .map-section { position: relative; height: 38vh; min-height: 250px; border-bottom: 1px solid var(--border-color); z-index: 1; }
+    #map { width: 100%; height: 100%; background: #0b0f17; }
+    .map-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; background: rgba(18, 24, 36, 0.85); backdrop-filter: blur(4px); padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .hidden { display: none !important; }
+
+    .ctrl-btn { padding: 7px 12px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; border: none; transition: background 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .ctrl-btn--danger { background: var(--danger); color: #fff; }
+    .ctrl-btn--danger:hover { background: #dc2626; }
+    .ctrl-btn--warning { background: #d97706; color: #fff; }
+    .ctrl-btn--warning:hover { background: #b45309; }
+    .ctrl-btn--secondary { background: #334155; color: #fff; border: 1px solid #475569; }
+    .ctrl-btn--secondary:hover { background: #475569; }
+    .ctrl-btn--primary { background: var(--primary); color: #0f172a; width: 100%; padding: 10px; font-weight: 700; }
+    .ctrl-btn--primary:hover { background: var(--primary-hover); }
+
+    .workspace { background: var(--bg-main); display: flex; flex-direction: column; flex: 1; padding-bottom: 20px; }
+    .role-nav { display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 0 20px; overflow-x: auto; }
+    .role-tab { background: none; border: none; color: var(--text-muted); padding: 11px 16px; font-size: 12px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .role-tab:hover { color: #fff; }
+    .role-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .tab-view { display: none !important; padding: 16px 20px; }
+    .tab-view.active { display: block !important; }
+
+    .gov-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .gov-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    .gov-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); margin-bottom: 16px; }
+    .gov-card__header { padding: 10px 14px; background: rgba(0, 0, 0, 0.15); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .gov-card__header h3 { font-size: 12px; font-weight: 700; color: #fff; }
+    .gov-pill { font-size: 10px; font-weight: 600; background: #0f172a; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); text-transform: uppercase; }
+    .gov-pill.ok-pill { color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
+    .gov-card__body { padding: 14px; font-size: 12px; }
+
+    .section-intro { color: var(--text-muted); margin-bottom: 12px; line-height: 1.45; font-size: 11px; background: rgba(15, 23, 42, 0.4); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); }
+    .legal-notice { font-size: 11px; line-height: 1.4; color: #cbd5e1; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 8px 10px; border-radius: 5px; margin-top: 8px; margin-bottom: 10px; }
+
+    .gov-form { display: flex; flex-direction: column; gap: 10px; }
+    .form-row { display: flex; flex-direction: column; gap: 5px; }
+    .form-row label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+
+    .fast-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .tag-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; transition: 0.15s; }
+    .tag-btn:hover { border-color: var(--primary); color: #fff; }
+
+    .gov-form input, .gov-form textarea, .gov-select { background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; padding: 8px 10px; border-radius: 5px; font-family: inherit; font-size: 12px; width: 100%; }
+    .gov-form input:focus, .gov-form textarea:focus, .gov-select:focus { outline: none; border-color: var(--primary); }
+
+    .emergency-phones { display: flex; flex-direction: column; gap: 6px; }
+    .phone-card { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 5px; padding: 8px 12px; text-decoration: none; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); font-size: 12px; transition: border-color 0.15s; }
+    .phone-card:hover { border-color: var(--primary); }
+    .phone-card span { font-weight: 700; color: var(--primary); font-family: var(--font-mono); }
+
+    .event-feed { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .event-item { background: var(--bg-main); border-left: 3px solid var(--primary); padding: 6px 8px; border-radius: 4px; font-size: 11px; }
+    .event-item.alarm { border-left-color: var(--danger); background: var(--danger-bg); color: #fca5a5; }
+    .time { color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); margin-right: 6px; }
+
+    .dispatch-alert { background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 5px; padding: 10px; margin-bottom: 12px; }
+    .dispatch-alert__title { font-size: 11px; font-weight: 800; color: #f87171; margin-bottom: 4px; }
+    .dispatch-alert__desc { font-size: 12px; color: #fff; font-weight: 600; margin-bottom: 2px; }
+    .dispatch-alert__sub { font-size: 11px; color: #cbd5e1; margin-bottom: 6px; }
+
+    .sectors-table { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .sec-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 6px 10px; border-radius: 4px; font-size: 11px; }
+    .sec-row.alarm { background: var(--danger-bg); border-left: 3px solid var(--danger); color: #fca5a5; }
+
+    .mission-banner { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 16px 20px; margin-top: 16px; display: flex; gap: 16px; align-items: flex-start; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
+    .mission-banner__icon { font-size: 24px; background: rgba(56, 189, 248, 0.1); padding: 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .mission-banner__content h4 { font-size: 13px; color: #fff; margin-bottom: 6px; font-weight: 700; }
+    .mission-banner__content p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .mission-banner__content b { color: var(--primary); }
+
+    .gov-footer { background: #0d121c; border-top: 1px solid var(--border-color); padding: 24px 20px; margin-top: 40px; }
+    .gov-footer__container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 24px; }
+    .gov-footer__title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .gov-footer__text { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+    .gov-footer__links { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .gov-footer__links a { font-size: 11px; color: var(--text-muted); text-decoration: none; transition: color 0.15s; }
+    .gov-footer__links a:hover { color: var(--primary); text-decoration: underline; }
+    .demo-badge { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fde047; padding: 6px 10px; border-radius: 4px; font-size: 10px; margin-top: 10px; line-height: 1.4; }
+
+    .node-pin { width: 12px; height: 12px; background: var(--ok); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 6px rgba(34, 197, 94, 0.6); }
+    .node-pin.alarm { width: 15px; height: 15px; background: var(--danger); box-shadow: 0 0 12px var(--danger); animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.35); } 100% { transform: scale(1); } }
+
+    @media (max-width: 992px) { .gov-grid-3 { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .gov-grid-2, .gov-footer__container { grid-template-columns: 1fr; gap: 16px; } .sys-metrics { display: none; } }
+  </style>
+</head>
+<body>
+
+  <header class="sys-header">
+    <div class="sys-brand">
+      <span class="status-pulse"></span>
+      <div>
+        <div class="sys-title">
+          АПК ЭКОСЕТЬ <span class="sys-tag">ЕДДС-112 • НОВОРОССИЙСК</span>
+        </div>
+        <div class="sys-sub">Автономная ячеистая LoRa-сеть раннего обнаружения ландшафтных возгораний</div>
+      </div>
+    </div>
+
+    <div class="sys-metrics">
+      <div class="metric-box">
+        <span class="metric-lbl">Метео (Маркотх):</span>
+        <span class="metric-val" id="weatherDisplay">--°C | --% | С-В (Норд-ост), -- м/с</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-lbl">Класс опасности:</span>
+        <span class="metric-val danger-text">IV (Высокий)</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-lbl">Узлов в сети:</span>
+        <span class="metric-val" id="activeNodesCount">10 / 10</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-lbl">Периметр:</span>
+        <span class="metric-val" id="networkStatusBadge" style="color: var(--ok);">НОРМА</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button id="soundToggleBtn" class="ctrl-btn ctrl-btn--secondary" title="Включить / отключить звук сирены">🔊 Звук: ВКЛ</button>
+      <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
+    </div>
+  </header>
+
+  <section class="map-section">
+    <div id="map"></div>
+    <div id="adminControls" class="map-controls hidden">
+      <button id="syncBtn" class="ctrl-btn ctrl-btn--secondary">🔄 Синхронизировать</button>
+      <button id="simulateBtn" class="ctrl-btn ctrl-btn--danger">🔥 Симуляция ЧС</button>
+      <button id="resetBtn" class="ctrl-btn ctrl-btn--secondary">Сброс</button>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <nav class="role-nav">
+      <button class="role-tab active" data-tab="citizenTab">🌲 Гражданский контроль и аннотация</button>
+      <button class="role-tab" data-tab="hardwareTab">🔬 Аппаратный модуль (3D)</button>
+      <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного оператора ЕДДС</button>
+    </nav>
+
+    <!-- ВКЛАДКА 1 -->
+    <section id="citizenTab" class="tab-view active">
+      <div class="gov-grid-2">
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Передать сигнал о задымлении диспетчеру</h3>
+            <span class="gov-pill">Анонимно</span>
+          </div>
+          <div class="gov-card__body">
+            <p class="section-intro">
+              <b>Аннотация:</b> Комплекс предназначен для непрерывного мониторинга лесного фонда и объектов повышенного риска в МО город Новороссийск. Сигнал от очевидцев проходит кросс-проверку по телеметрии датчиков EcoNet Mesh.
+            </p>
+            <form id="citizenForm" class="gov-form">
+              <div class="form-row">
+                <label>Объект повышенного риска (все зоны):</label>
+                <div class="fast-tags">
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-01">Полигон г. Щелба</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-02">Сухая Щель</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-03">Карьер Пролетарий</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-04">Волчьи Ворота</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-05">Семь Ветров</button>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="citLoc">Точный ориентир или район:</label>
+                <input type="text" id="citLoc" placeholder="Например: Склон над Борисовкой" required>
+              </div>
+              <div class="form-row">
+                <label for="citDesc">Описание ситуации и признаки горения:</label>
+                <textarea id="citDesc" rows="2" placeholder="Например: Густой серый дым, запах гари..." required></textarea>
+              </div>
+              <div class="legal-notice">
+                ⚠️ <b>Правовое напоминание:</b> Заведомо ложный вызов специализированных служб отвлекает дежурные расчеты и влечет административную ответственность согласно ст. 19.13 КоАП РФ.
+              </div>
+              <button type="submit" class="ctrl-btn ctrl-btn--primary">Отправить сообщение в ЕДДС</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Экстренные службы и лента событий</h3>
+            <span class="gov-pill ok-pill">МСК Время</span>
+          </div>
+          <div class="gov-card__body">
+            <div class="emergency-phones" style="margin-bottom: 12px;">
+              <a href="tel:112" class="phone-card"><span>112</span> Единая служба спасения</a>
+              <a href="tel:+78617767276" class="phone-card"><span>+7 (8617) 76-72-76</span> ЕДДС Новороссийск</a>
+            </div>
+            <div class="feed-box">
+              <h4 style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Публичная лента событий:</h4>
+              <div id="publicEventFeed" class="event-feed"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mission-banner">
+        <div class="mission-banner__icon">🛡️</div>
+        <div class="mission-banner__content">
+          <h4>О миссии комплекса АПК «ЭкоСеть»</h4>
+          <p>
+            Это не просто форма обратной связи или классический диспетчерский вызов. Данная платформа реализует концепцию 
+            <b>проактивного превентивного мониторинга</b>. Сообщения граждан не уходят в «слепую» очередь — они мгновенно 
+            сопоставляются с показателями автономных газоанализаторов (CO2) и термодатчиков ближайших узлов LoRa-mesh. 
+            Такой подход исключает человеческий фактор, локализует очаги тления на свалках и в лесных массивах на ранней стадии 
+            и предотвращает масштабные верховые пожары в условиях новороссийского норд-оста.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ВКЛАДКА 2 -->
+    <section id="hardwareTab" class="tab-view">
+      <div class="gov-grid-2">
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Интерактивная 3D-модель EcoNet-Node v1.2</h3>
+            <span class="gov-pill">Three.js</span>
+          </div>
+          <div class="gov-card__body">
+            <div id="node3dCanvas" style="height:220px; background:#121824; border-radius:4px;"></div>
+          </div>
+        </div>
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Технологическое превосходство и экономика</h3>
+            <span class="gov-pill ok-pill">Защита бюджета</span>
+          </div>
+          <div class="gov-card__body" style="font-size:12px; display:flex; flex-direction:column; gap:10px;">
+            <div><b>Микроконтроллер:</b> ESP32-S3 (Dual-Core 240MHz)</div>
+            <div><b>Связь:</b> LoRa SX1262 (868 МГц, Mesh-ретрансляция до 10 км без GSM)</div>
+            <div><b>Сенсоры:</b> Bosch BME280 + газоанализатор CCS811 (раннее детектирование угарного газа CO на стадии тления)</div>
+            <div style="background: rgba(34, 197, 94, 0.1); border-left: 3px solid var(--ok); padding: 8px; border-radius: 4px; color: #4ade80; margin-top: 4px;">
+              💡 <b>Предотвращение издержек:</b> Развертывание автономной ячеистой сети исключает миллионные убытки от масштабных верховых пожаров на Маркотхском хребте за счет раннего реагирования в первые 5 минут.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА -->
+    <section id="operatorTab" class="tab-view">
+      <div class="gov-grid-3">
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Протокол реагирования и наряды</h3>
+            <span id="operatorIncidentBadge" class="gov-pill">Дежурство</span>
+          </div>
+          <div class="gov-card__body">
+            <div id="dispatchCard" class="dispatch-alert" style="display: none;">
+              <div class="dispatch-alert__title">ТРЕБУЕТСЯ РЕАГИРОВАНИЕ</div>
+              <div id="dispatchTarget" class="dispatch-alert__desc">Локация: ...</div>
+              <div id="dispatchTele" class="dispatch-alert__sub">Телеметрия: ...</div>
+              <div class="io-box" id="dispatchIO" style="margin: 8px 0; padding:6px; background:#fffbeb; border:1px solid #fcd34d; font-size:11px; border-radius:4px; color:#b45309;">
+                Ответственный ИО: ...
+              </div>
+              <label style="font-size:11px; color:var(--text-muted);">Назначить дежурный расчет:</label>
+              <select id="rescueUnit" class="gov-select" style="margin-top:4px;">
+                <option>ПСЧ-8 (ул. Котовского) — АЦ-40</option>
+                <option>Патруль Новороссийского лесхоза</option>
+                <option>ПСЧ-22 (Шесхарис) — Горный ход</option>
+              </select>
+              <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="flex: 1;">Подтвердить выезд</button>
+                <button id="rejectBtn" class="ctrl-btn ctrl-btn--warning" style="flex: 1;" title="Отклонить как ложный вызов">❌ Отклонить</button>
+                <button id="pdfAktBtn" class="ctrl-btn ctrl-btn--secondary" style="width: 100%;" title="Скачать акт КЧС">📄 Скачать акт (PDF)</button>
+              </div>
+            </div>
+
+            <div id="noIncidentText" style="font-size:11px; color:var(--text-muted); text-align:center; padding: 15px 0;">
+              Ожидание входящих вызовов и срабатывания датчиков сети...
+            </div>
+            
+            <div class="checklist" style="display:flex; flex-direction:column; gap:6px; font-size:11px; margin-top:10px;">
+              <label><input type="checkbox" checked disabled> Опрос LoRa-периметра (868 МГц)</label>
+              <label><input type="checkbox" checked disabled> Мониторинг розы ветров Маркотха</label>
+            </div>
+
+            <button id="exportExcelBtn" class="ctrl-btn ctrl-btn--secondary" style="margin-top:14px; width:100%;">
+              📊 Выгрузить сводку ЕДДС (Excel)
+            </button>
+          </div>
+        </div>
+
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Оперативный журнал событий</h3>
+            <span class="live-dot"></span>
+          </div>
+          <div class="gov-card__body">
+            <div id="operatorEventStream" class="event-feed" style="height: 220px;"></div>
+          </div>
+        </div>
+
+        <div class="gov-card">
+          <div class="gov-card__header">
+            <h3>Секторы и ответственные ИО</h3>
+          </div>
+          <div class="gov-card__body">
+            <div id="sectorsTable" class="sectors-table" style="max-height: 220px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="gov-footer">
+    <div class="gov-footer__container">
+      <div class="gov-footer__col">
+        <div class="gov-footer__title">АПК «ЭкоСеть» • Новороссийск</div>
+        <p class="gov-footer__text">Система автоматизированного экологического и лесопожарного мониторинга на базе ячеистых радиосетей.</p>
+        <div class="demo-badge">⚠️ Демонстрационный вариант. Данные носят учебный характер и не являются актуальной оперативной сводкой МЧС.</div>
+      </div>
+      <div class="gov-footer__col">
+        <div class="gov-footer__title">Правовые сведения</div>
+        <ul class="gov-footer__links">
+          <li><a href="#">Политика обработки персональных данных (152-ФЗ)</a></li>
+          <li><a href="#">Регламент реагирования ЕДДС-112</a></li>
+          <li><a href="#">Свидетельство о регистрации в реестре ПО РФ № 2026618492</a></li>
+          <li><a href="https://max.ru/u/f9LHodD0cOJhfjbPyB8J_YBIA65_aZXCug_puwAh18SzUtcP_MDRHlaplCA" target="_blank">Профиль разработчика в MAX ↗</a></li>
+        </ul>
+      </div>
+      <div class="gov-footer__col">
+        <div class="gov-footer__title">Контакты разработчика</div>
+        <p class="gov-footer__text">Автор проекта и концепции:<br><b>Болобанова Арина Сергеевна</b></p>
+        <p class="gov-footer__text" style="margin-top: 6px;">Электронная почта:<br><a href="mailto:arina.bolobanova@yandex.ru" style="color: var(--primary);">arina.bolobanova@yandex.ru</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
@@ -200,7 +576,6 @@
       currentIncidentId = null;
     });
 
-    // Мгновенная генерация и скачивание акта КЧС в браузере
     document.getElementById("pdfAktBtn").addEventListener("click", () => {
       const targetLoc = document.getElementById("dispatchTarget").innerText || "Объект мониторинга: г. Новороссийск";
       const targetTele = document.getElementById("dispatchTele").innerText || "Телеметрия в норме";
@@ -326,3 +701,5 @@
       };
     }, 600);
   </script>
+</body>
+</html>
