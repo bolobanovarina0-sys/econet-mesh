@@ -1,7 +1,11 @@
 const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([44.736, 37.738], 12);
 L.control.zoom({ position: "bottomright" }).addTo(map);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 16 }).addTo(map);
+// Надежная бесплатная подложка OpenStreetMap (без API ключей)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 16,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
 const markersMap = {};
 const nodesCache = {};
