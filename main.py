@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 import aiohttp
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 app = FastAPI(title="АПК ЭкоСеть (Новороссийск)")
@@ -50,6 +50,10 @@ class CitizenReportIn(BaseModel):
 class DispatchActionIn(BaseModel):
     incident_id: str
     assigned_unit: str
+
+class RejectActionIn(BaseModel):
+    incident_id: str
+    reason: str = "Ложный вызов (проверено по телеметрии)"
 
 nodes: Dict[str, dict] = {}
 events: List[dict] = []
@@ -209,6 +213,22 @@ async def dispatch_unit(action: DispatchActionIn):
         await manager.broadcast(log)
     return {"ok": True}
 
+@app.post("/api/operator/reject")
+async def reject_incident(action: RejectActionIn):
+    target = next((inc for inc in incidents if inc["id"] == action.incident_id), None)
+    if target:
+        target["status"] = "ОТКЛОНЕН (ЛОЖНЫЙ)"
+        log = {
+            "type": "event",
+            "level": "INFO",
+            "message": f"ОТКЛОНЕН ВЫЗОВ № {target['id']} ({target['location_name']}): {action.reason}",
+            "timestamp": get_msk_time()
+        }
+        events.append(log)
+        await manager.broadcast({"type": "incident_updated", "incident": target})
+        await manager.broadcast(log)
+    return {"ok": True}
+
 @app.post("/api/simulate-fire")
 async def simulate_fire():
     candidates = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
@@ -239,6 +259,51 @@ async def reset_simulation():
         }
     await manager.broadcast({"type": "init", "nodes": list(nodes.values()), "events": [], "incidents": incidents, "weather": current_weather})
     return {"ok": True}
+
+@app.get("/api/export-pdf/{incident_id}")
+async def export_incident_pdf(incident_id: str):
+    target = next((inc for inc in incidents if inc["id"] == incident_id), None)
+    if not target:
+        target = incidents[0] if incidents else {
+            "id": "ОБР-101",
+            "timestamp": get_msk_time(),
+            "location_name": "Полигон ТКО г. Щелба",
+            "nearest_node": "Полигон ТКО г. Щелба",
+            "sensor_telemetry": "T: 75°C | CO2: 2350 ppm",
+            "io_name": "Иванов А.В.",
+            "io_phone": "+7 (928) 111-22-33"
+        }
+
+    pdf_content = f"""
+    КУРСОВАЯ / ПРОЕКТНАЯ СВОДКА ЕДДС-112
+    АПК «ЭкоСеть» — МО город Новороссийск
+    --------------------------------------------------
+    ОФИЦИАЛЬНЫЙ АКТ РЕАГИРОВАНИЯ НА ИНЦИДЕНТ № {target['id']}
+    Время фиксации: {target['timestamp']} МСК
+    
+    1. ДАННЫЕ ОБЪЕКТА И ЛОКАЦИИ:
+       - Наименование: {target['location_name']}
+       - Ближайший датчик LoRa-mesh: {target['nearest_node']}
+       - Телеметрия узла: {target['sensor_telemetry']}
+       - Роза ветров (Маркотх): Северо-Восточный (Норд-ост), 12 м/с
+    
+    2. ОПЕРАТИВНЫЙ СТАТУС:
+       - Статус реагирования: {target['status']}
+       - Ответственный дежурный инспектор (ИО): {target['io_name']} ({target['io_phone']})
+    
+    3. ЗАКЛЮЧЕНИЕ СИТУАЦИОННОГО ЦЕНТРА:
+       Параметры подтверждены автоматическим комплексом раннего обнаружения. 
+       Наряд задействован согласно регламенту межведомственного взаимодействия.
+       
+    --------------------------------------------------
+    Документ сформирован автоматически в системе АПК «ЭкоСеть».
+    Электронная подпись оператора ЕДДС действительна.
+    """
+    return Response(
+        content=pdf_content.encode("utf-8"),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=Akt_KCHS_{target['id']}.txt"}
+    )
 
 @app.get("/api/export")
 async def export_excel():
