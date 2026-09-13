@@ -6,7 +6,6 @@
   <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
-  <!-- ВСЕ СТИЛИ ВСТРОЕНЫ НАПРЯМУЮ, ЧТОБЫ НИЧЕГО НЕ СЛЕТАЛО -->
   <style>
     :root {
       --bg-main: #121824;
@@ -25,7 +24,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
-    body { background: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 13px; line-height: 1.45; }
+    html, body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 13px; line-height: 1.45; }
 
     .sys-header { background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; z-index: 1001; }
     .sys-brand { display: flex; align-items: center; gap: 10px; }
@@ -53,13 +52,13 @@
     .ctrl-btn--primary { background: var(--primary); color: #0f172a; width: 100%; padding: 10px; font-weight: 700; }
     .ctrl-btn--primary:hover { background: var(--primary-hover); }
 
-    .workspace { background: var(--bg-main); display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .workspace { background: var(--bg-main); display: flex; flex-direction: column; flex: 1; padding-bottom: 20px; }
     .role-nav { display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 0 20px; overflow-x: auto; }
     .role-tab { background: none; border: none; color: var(--text-muted); padding: 11px 16px; font-size: 12px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
     .role-tab:hover { color: #fff; }
     .role-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-    .tab-view { display: none; padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .tab-view { display: none; padding: 16px 20px; }
     .tab-view.active { display: block; }
 
     .gov-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -91,7 +90,7 @@
     .phone-card:hover { border-color: var(--primary); }
     .phone-card span { font-weight: 700; color: var(--primary); font-family: var(--font-mono); }
 
-    .event-feed { height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .event-feed { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
     .event-item { background: var(--bg-main); border-left: 3px solid var(--primary); padding: 6px 8px; border-radius: 4px; font-size: 11px; }
     .event-item.alarm { border-left-color: var(--danger); background: var(--danger-bg); color: #fca5a5; }
     .time { color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); margin-right: 6px; }
@@ -113,7 +112,7 @@
     .mission-banner__content b { color: var(--primary); }
 
     /* Государственный подвал */
-    .gov-footer { background: #0d121c; border-top: 1px solid var(--border-color); padding: 24px 20px; margin-top: auto; }
+    .gov-footer { background: #0d121c; border-top: 1px solid var(--border-color); padding: 24px 20px; margin-top: 40px; }
     .gov-footer__container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 24px; }
     .gov-footer__title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
     .gov-footer__text { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
@@ -288,7 +287,7 @@
       </div>
     </section>
 
-    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА -->
+    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (3 колонки, синхронизированные) -->
     <section id="operatorTab" class="tab-view hidden">
       <div class="gov-grid-3">
         
@@ -392,6 +391,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="/static/app.js?v=8.0"></script>
+  <script src="/static/app.js?v=9.0"></script>
 </body>
 </html>
