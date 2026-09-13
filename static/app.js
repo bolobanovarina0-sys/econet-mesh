@@ -1,11 +1,7 @@
 const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([44.736, 37.738], 12);
 L.control.zoom({ position: "bottomright" }).addTo(map);
 
-// Надежная бесплатная подложка OpenStreetMap (без API ключей)
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 16,
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16 }).addTo(map);
 
 const markersMap = {};
 const nodesCache = {};
@@ -17,13 +13,10 @@ let selectedTag = null;
 let currentIncidentId = null;
 let isOperator = false;
 
-// Авторизация
+// Авторизация без подсказки пароля
 document.getElementById("loginBtn").addEventListener("click", () => {
-  if (isOperator) {
-    alert("Вы уже авторизованы.");
-    return;
-  }
-  const pwd = prompt("Введите пароль доступа (пароль: admin):");
+  if (isOperator) { alert("Вы уже авторизованы."); return; }
+  const pwd = prompt("Введите пароль доступа сотрудника ЕДДС:");
   if (pwd === "admin") {
     isOperator = true;
     document.getElementById("loginBtn").style.display = "none";
@@ -36,7 +29,6 @@ document.getElementById("loginBtn").addEventListener("click", () => {
   }
 });
 
-// Отрисовка конуса ветра
 function drawCones() {
   fireConesLayer.clearLayers();
   Object.values(nodesCache).forEach(node => {
@@ -48,8 +40,8 @@ function drawCones() {
       const p2 = [node.lat + dist * Math.cos(rad - 0.3), node.lng + dist * Math.sin(rad - 0.3)];
       const p3 = [node.lat + dist * Math.cos(rad + 0.3), node.lng + dist * Math.sin(rad + 0.3)];
       
-      L.polygon([p1, p2, p3], { color: "#dc2626", fillOpacity: 0.2, weight: 1 }).addTo(fireConesLayer);
-      L.circle([node.lat, node.lng], { radius: 300, color: "#dc2626", fillOpacity: 0.5 }).addTo(fireConesLayer);
+      L.polygon([p1, p2, p3], { color: "#ef4444", fillOpacity: 0.25, weight: 1 }).addTo(fireConesLayer);
+      L.circle([node.lat, node.lng], { radius: 300, color: "#ef4444", fillOpacity: 0.5 }).addTo(fireConesLayer);
     }
   });
 }
@@ -81,7 +73,7 @@ function updateTable() {
   const list = Object.values(nodesCache);
   const alarms = list.filter(n => n.status === "ТРЕВОГА");
   
-  document.getElementById("activeNodesCount").textContent = `${list.length}/10`;
+  document.getElementById("activeNodesCount").textContent = `${list.length} / 10`;
   const stBadge = document.getElementById("networkStatusBadge");
   if (alarms.length > 0) {
     stBadge.textContent = `ТРЕВОГА (${alarms.length})`;
@@ -93,31 +85,33 @@ function updateTable() {
 
   document.getElementById("sectorsTable").innerHTML = list.map(n => `
     <div class="sec-row ${n.status === 'ТРЕВОГА' ? 'alarm' : ''}">
-      <span><b>${n.name}</b><br><small style="color:#64748b">Отв: ${n.io_name} (${n.io_phone})</small></span>
-      <span>${n.temp}°C | ${n.co2} ppm</span>
+      <span><b>${n.name}</b><br><small style="color:var(--text-muted)">Отв: ${n.io_name} (${n.io_phone})</small></span>
+      <span style="font-family:monospace">${n.temp}°C | ${n.co2}ppm</span>
     </div>
   `).join("");
 }
 
 function addFeedItem(evt) {
   const feed = document.getElementById("publicEventFeed");
-  const div = document.createElement("div");
-  div.className = `feed-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
-  div.innerHTML = `<span class="time">[${evt.timestamp} МСК]</span>${evt.message}`;
-  feed.prepend(div);
+  if(feed) {
+    const div = document.createElement("div");
+    div.className = `event-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
+    div.innerHTML = `<span class="time">[${evt.timestamp} МСК]</span>${evt.message}`;
+    feed.prepend(div);
+  }
 }
 
-// Теги выбора участка
-document.querySelectorAll(".tag").forEach(btn => {
+// Выбор тегов
+document.querySelectorAll(".tag-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tag").forEach(b => b.classList.remove("selected"));
-    btn.classList.add("selected");
+    document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
+    btn.style.borderColor = "var(--primary)";
     selectedTag = btn.dataset.sec;
     document.getElementById("citLoc").value = btn.textContent;
   });
 });
 
-// Отправка формы жителя
+// Отправка формы жителя (связь с пультом)
 document.getElementById("citizenForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const data = {
@@ -126,19 +120,19 @@ document.getElementById("citizenForm").addEventListener("submit", async (e) => {
     description: "Сигнал от жителя"
   };
   await fetch("/api/citizen-report", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(data) });
-  alert("Сигнал отправлен! Он опубликован в ленте и передан диспетчеру ЕДДС Новороссийска.");
+  alert("Сигнал успешно передан в ЕДДС Новороссийск и отображен на пульте дежурного.");
   e.target.reset();
-  document.querySelectorAll(".tag").forEach(b => b.classList.remove("selected"));
+  document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
 });
 
-// Пульт оператора
+// Отображение инцидента на пульте
 function showIncident(inc) {
   currentIncidentId = inc.id;
+  document.getElementById("noIncidentText").style.display = "none";
   document.getElementById("dispatchCard").style.display = "block";
-  document.getElementById("dispatchTarget").innerHTML = `<b>Локация:</b> ${inc.location_name}<br><b>Узел:</b> ${inc.nearest_node}`;
+  document.getElementById("dispatchTarget").innerHTML = `<b>Локация:</b> ${inc.location_name} (Узел: ${inc.nearest_node})`;
   document.getElementById("dispatchTele").innerHTML = `<b>Телеметрия:</b> ${inc.sensor_telemetry}`;
-  document.getElementById("dispatchIOName").textContent = `Ответственный ИО: ${inc.io_name}`;
-  document.getElementById("dispatchIOPhone").textContent = `Телефон: ${inc.io_phone}`;
+  document.getElementById("dispatchIO").innerHTML = `Ответственный ИО: <b>${inc.io_name}</b> (${inc.io_phone})`;
 }
 
 document.getElementById("assignBtn").addEventListener("click", async () => {
@@ -148,7 +142,8 @@ document.getElementById("assignBtn").addEventListener("click", async () => {
     body: JSON.stringify({ incident_id: currentIncidentId, assigned_unit: unit })
   });
   document.getElementById("dispatchCard").style.display = "none";
-  alert("Наряд успешно направлен на участок.");
+  document.getElementById("noIncidentText").style.display = "block";
+  alert("Оперативный наряд направлен на место вызова.");
 });
 
 // Кнопки управления
@@ -157,16 +152,17 @@ document.getElementById("simulateBtn").addEventListener("click", () => fetch("/a
 document.getElementById("resetBtn").addEventListener("click", () => fetch("/api/reset", { method: "POST" }));
 
 // Табы
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(btn.dataset.tab).classList.add("active");
+document.querySelectorAll(".role-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".role-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById(tab.dataset.tab).classList.add("active");
+    if (tab.dataset.tab === "hardwareTab" && window.onResizeThree) window.onResizeThree();
   });
 });
 
-// WebSocket с МСК погодой
+// WebSocket
 function initWS() {
   const ws = new WebSocket(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`);
   ws.onmessage = (msg) => {
@@ -175,9 +171,7 @@ function initWS() {
       if (data.weather) {
         weatherWindSpeed = data.weather.wind_speed;
         weatherWindDir = data.weather.wind_direction;
-        document.getElementById("weatherTemp").textContent = `${data.weather.temp}°C`;
-        document.getElementById("weatherHum").textContent = `${data.weather.humidity}%`;
-        document.getElementById("weatherWind").textContent = `${weatherWindSpeed} м/с (С-В)`;
+        document.getElementById("weatherDisplay").textContent = `${data.weather.temp}°C | ${data.weather.humidity}% | С-В, ${weatherWindSpeed} м/с`;
       }
       data.nodes.forEach(updateNode);
       data.events.forEach(addFeedItem);
@@ -187,41 +181,59 @@ function initWS() {
       addFeedItem(data);
     } else if (data.type === "new_incident") {
       showIncident(data.incident);
-      if(!isOperator) alert("ВНИМАНИЕ: Зафиксирован инцидент в Новороссийске. Требуется проверка оператора!");
+      if(!isOperator) {
+        alert("ВНИМАНИЕ: Поступил экстренный вызов в Новороссийске! Требуется вход сотрудника.");
+      }
     }
   };
   ws.onclose = () => setTimeout(initWS, 3000);
 }
 initWS();
 
-// 3D Модель
+// 3D Модель датчика
 setTimeout(() => {
   const container = document.getElementById("node3dCanvas");
-  if(!container) return;
+  if(!container || typeof THREE === "undefined") return;
+
+  const w = container.clientWidth || 350;
+  const h = container.clientHeight || 220;
+
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(40, container.clientWidth/container.clientHeight, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
   camera.position.set(3, 2, 4);
-  const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
-  renderer.setSize(container.clientWidth, container.clientHeight);
+
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(w, h);
   container.appendChild(renderer.domElement);
+
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.autoRotate = true;
-  
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  const light = new THREE.DirectionalLight(0xffffff, 0.5);
-  light.position.set(2,5,3);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+  const light = new THREE.DirectionalLight(0xffffff, 1.2);
+  light.position.set(3, 5, 4);
   scene.add(light);
 
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.8), new THREE.MeshStandardMaterial({color: 0x334155}));
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 0.6), new THREE.MeshStandardMaterial({color: 0x0f172a}));
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.8), new THREE.MeshStandardMaterial({color: 0x334155, roughness:0.4}));
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.6), new THREE.MeshStandardMaterial({color: 0x0f172a, metalness:0.8}));
   panel.position.set(0, 0.95, 0);
   const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), new THREE.MeshStandardMaterial({color: 0x1e293b}));
   antenna.position.set(0.4, 1.5, -0.2);
-  
-  const group = new THREE.Group();
+
   group.add(body, panel, antenna);
   scene.add(group);
 
   function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
   animate();
-}, 500);
+
+  window.onResizeThree = () => {
+    const nw = container.clientWidth;
+    const nh = container.clientHeight;
+    if(nw && nh) {
+      camera.aspect = nw / nh;
+      camera.updateProjectionMatrix();
+      renderer.setSize(nw, nh);
+    }
+  };
+}, 600);
