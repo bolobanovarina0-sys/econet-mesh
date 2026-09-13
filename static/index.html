@@ -3,309 +3,141 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EcoNet Mesh — Единый ситуационный центр лесопожарного мониторинга</title>
-  
-  <!-- Стили карты Leaflet -->
+  <title>АПК ЭкоСеть — Мониторинг (г. Новороссийск)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-  <!-- ВЕРХНЯЯ СИСТЕМНАЯ СТРОКА -->
-  <header class="sys-header">
-    <div class="sys-brand">
-      <span class="status-pulse"></span>
-      <div>
-        <div class="sys-title">
-          ECONET MESH <span class="sys-tag">ЕДДС-112 • НОВОРОССИЙСК</span>
-        </div>
-        <div class="sys-sub">Автономная ячеистая LoRa-сеть раннего обнаружения ландшафтных возгораний</div>
+  <!-- ШАПКА -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="logo-box">ЭКОСЕТЬ</div>
+      <div class="brand-titles">
+        <h1>ЕДДС Новороссийск</h1>
+        <p>Аппаратно-программный комплекс (Зона покрытия: г. Новороссийск)</p>
       </div>
     </div>
-
-    <!-- Метеосводка реального времени (Open-Meteo) -->
-    <div class="sys-metrics">
-      <div class="metric-box">
-        <span class="metric-lbl">Метеоусловия (Маркотх):</span>
-        <span class="metric-val" id="weatherWind">С-В (Норд-ост), 14.2 м/с</span>
+    <div class="header-metrics">
+      <div class="metric weather-widget">
+        <span class="m-lbl">Погода (Маркотх):</span> 
+        <strong id="weatherTemp">--°C</strong> <span style="color:#cbd5e1">|</span> 
+        <strong id="weatherHum">--%</strong> <span style="color:#cbd5e1">|</span> 
+        <strong id="weatherWind">-- м/с (С-В)</strong>
       </div>
-      <div class="metric-box">
-        <span class="metric-lbl">Класс пожароопасности:</span>
-        <span class="metric-val danger-text">IV (Высокий)</span>
-      </div>
-      <div class="metric-box">
-        <span class="metric-lbl">Секторов в сети:</span>
-        <span class="metric-val" id="activeNodesCount">15 / 15</span>
-      </div>
-      <div class="metric-box">
-        <span class="metric-lbl">Статус периметра:</span>
-        <span class="metric-val" id="networkStatusBadge" style="color: var(--ok);">ДЕЖУРНЫЙ РЕЖИМ</span>
-      </div>
+      <div class="metric"><span class="m-lbl">Объекты:</span> <span id="activeNodesCount">10/10</span></div>
+      <div class="metric"><span class="m-lbl">Статус:</span> <span id="networkStatusBadge" style="color:var(--ok)">НОРМА</span></div>
     </div>
+    <!-- Кнопка авторизации -->
+    <button id="loginBtn" class="btn btn-login">Вход для сотрудников</button>
   </header>
 
-  <!-- КАРТА-ХЭДЕР -->
+  <!-- КАРТА -->
   <section class="map-section">
     <div id="map"></div>
-    <div class="map-controls">
-      <button id="simulateBtn" class="ctrl-btn ctrl-btn--danger">🔥 Тест: симуляция очага</button>
-      <button id="resetBtn" class="ctrl-btn ctrl-btn--secondary">Сброс системы</button>
+    <!-- Панель управления (скрыта до авторизации) -->
+    <div id="adminControls" class="admin-controls hidden">
+      <button id="syncBtn" class="btn btn-sync">🔄 Обновить связь</button>
+      <button id="simulateBtn" class="btn btn-danger">🔥 Симуляция ЧС</button>
+      <button id="resetBtn" class="btn btn-secondary">Сброс системы</button>
     </div>
   </section>
 
-  <!-- РАБОЧАЯ ОБЛАСТЬ (ТАБЫ РОЛЕЙ) -->
   <main class="workspace">
-    <nav class="role-nav">
-      <button class="role-tab active" data-tab="operatorTab">
-        <span class="tab-icon">🚨</span> Пульт оператора ЕДДС / Лесхоза
-      </button>
-      <button class="role-tab" data-tab="citizenTab">
-        <span class="tab-icon">🌲</span> Гражданский мониторинг
-      </button>
-      <button class="role-tab" data-tab="hardwareTab">
-        <span class="tab-icon">🔬</span> Аппаратный узел EcoNet-Node (3D)
-      </button>
+    <!-- ТАБЫ -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="citizenTab">Гражданский контроль</button>
+      <button class="tab-btn" data-tab="hardwareTab">Аппаратный модуль</button>
+      <!-- Вкладка оператора (скрыта) -->
+      <button id="operatorTabBtn" class="tab-btn hidden" data-tab="operatorTab">Пульт дежурного</button>
     </nav>
 
-    <!-- ВКЛАДКА 1: ПУЛЬТ ОПЕРАТОРА -->
-    <section id="operatorTab" class="tab-view active">
-      <div class="gov-grid-3">
-        
-        <!-- Карточка управления инцидентом -->
-        <div class="gov-card">
-          <div class="gov-card__header">
-            <h3>Протокол реагирования и наряды</h3>
-            <span id="operatorIncidentBadge" class="gov-pill">Дежурство</span>
-          </div>
-          <div class="gov-card__body">
-            <!-- Блок назначения расчета при ЧС -->
-            <div id="dispatchCard" class="dispatch-alert" style="display: none;">
-              <div class="dispatch-alert__title">ВНИМАНИЕ: ЗАФИКСИРОВАН ОЧАГ ВОЗГОРАНИЯ</div>
-              <div id="dispatchTarget" class="dispatch-alert__desc">Сектор: ...</div>
-              <div id="dispatchConfidence" class="dispatch-alert__sub">Достоверность: ...</div>
-              
-              <div class="dispatch-action-group">
-                <label for="rescueUnitSelect">Назначить дежурный расчет:</label>
-                <select id="rescueUnitSelect" class="gov-select">
-                  <option value="ПСЧ-8 (ул. Котовского)">ПСЧ-8 (ул. Котовского) — АЦ-40</option>
-                  <option value="Патруль Новороссийского лесхоза">Патруль Новороссийского лесхоза (УАЗ)</option>
-                  <option value="ПСЧ-22 (Шесхарис)">ПСЧ-22 (Шесхарис) — Горный ход</option>
-                  <option value="МКУ ПАСС Служба спасения">МКУ «Служба спасения г. Новороссийск»</option>
-                </select>
-                <button id="assignUnitBtn" class="ctrl-btn ctrl-btn--action">Подтвердить и направить наряд</button>
+    <!-- ВКЛАДКА: ГРАЖДАНЕ -->
+    <section id="citizenTab" class="tab-content active">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">Передать сигнал диспетчеру</div>
+          <div class="card-body">
+            <p class="help-text">Отправка сигнала происходит анонимно. Координаты сверяются с датчиками. <b>Система обслуживает только территорию МО город Новороссийск.</b></p>
+            <form id="citizenForm">
+              <label>Быстрый выбор объекта:</label>
+              <div class="tags">
+                <button type="button" class="tag" data-sec="УЗЕЛ-01">Полигон г. Щелба</button>
+                <button type="button" class="tag" data-sec="УЗЕЛ-02">Сухая Щель</button>
+                <button type="button" class="tag" data-sec="УЗЕЛ-03">Карьер Пролетарий</button>
               </div>
-            </div>
-
-            <!-- Регламент диспетчера -->
-            <div class="checklist">
-              <label class="check-row"><input type="checkbox" checked disabled> Опрос LoRa-периметра (частота 868 МГц)</label>
-              <label class="check-row"><input type="checkbox" checked disabled> Мониторинг розы ветров Маркотхского хребта</label>
-              <label class="check-row"><input type="checkbox" id="chkAlertDuty"> Уведомление оперативного дежурного ЕДДС</label>
-              <label class="check-row"><input type="checkbox" id="chkReserve"> Приведение резервных цистерн в готовность</label>
-            </div>
-
-            <button id="exportExcelBtn" class="ctrl-btn ctrl-btn--outline" style="margin-top: 14px;">
-              📊 Сформировать сводку ЕДДС (Excel)
-            </button>
-          </div>
-        </div>
-
-        <!-- Журнал инцидентов и кросс-анализа -->
-        <div class="gov-card">
-          <div class="gov-card__header">
-            <h3>Оперативный журнал событий</h3>
-            <span class="live-dot"></span>
-          </div>
-          <div class="gov-card__body">
-            <div id="operatorEventStream" class="event-feed">
-              <div class="empty-placeholder">Активных инцидентов нет. Все секторы в норме.</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Сводка секторов риска -->
-        <div class="gov-card">
-          <div class="gov-card__header">
-            <h3>Секторы периметра (15 объектов)</h3>
-          </div>
-          <div class="gov-card__body">
-            <div id="sectorsListTable" class="sectors-table">
-              <!-- Заполняется динамически из WebSocket -->
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ВКЛАДКА 2: ГРАЖДАНСКИЙ МОНИТОРИНГ -->
-    <section id="citizenTab" class="tab-view">
-      <div class="gov-grid-2">
-        
-        <!-- Форма передачи сигнала -->
-        <div class="gov-card">
-          <div class="gov-card__header">
-            <h3>Передать сигнал о задымлении диспетчеру</h3>
-            <span class="gov-pill">100% Анонимно</span>
-          </div>
-          <div class="gov-card__body">
-            <p class="section-intro">
-              Заметили открытый огонь или дым на склонах? Передайте ориентир дежурной смене. Данные пройдут моментальный кросс-чек с ближайшим датчиком.
-            </p>
-
-            <form id="citizenSmokeForm" class="gov-form">
-              <div class="form-row">
-                <label>Быстрый выбор сектора повышенного риска:</label>
-                <div class="fast-tags">
-                  <button type="button" class="tag-btn" data-sec="NODE-01">Полигон ТКО г. Щелба</button>
-                  <button type="button" class="tag-btn" data-sec="NODE-02">Сухая Щель (Заказник)</button>
-                  <button type="button" class="tag-btn" data-sec="NODE-03">Карьер ц/з «Пролетарий»</button>
-                  <button type="button" class="tag-btn" data-sec="NODE-04">Волчьи Ворота (А-146)</button>
-                  <button type="button" class="tag-btn" data-sec="NODE-05">Семь Ветров (Хребет)</button>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <label for="citizenLocInput">Точный ориентир или район:</label>
-                <input type="text" id="citizenLocInput" placeholder="Например: Склон над карьером Шесхарис" required>
-              </div>
-
-              <div class="form-row">
-                <label for="citizenDescInput">Признаки возгорания:</label>
-                <textarea id="citizenDescInput" rows="2" placeholder="Густой серый дым, верховой огонь, запах гари..." required></textarea>
-              </div>
-
-              <button type="submit" class="ctrl-btn ctrl-btn--primary">
-                Направить сигнал дежурному диспетчеру
-              </button>
+              <label>Описание ситуации:</label>
+              <input type="text" id="citLoc" placeholder="Ориентир (например: Склон горы)" required>
+              <button type="submit" class="btn btn-primary" style="margin-top:10px; width:100%">Отправить сообщение</button>
             </form>
           </div>
         </div>
-
-        <!-- Экстренные телефоны и памятка -->
-        <div class="gov-card">
-          <div class="gov-card__header">
-            <h3>Экстренные службы Новороссийска</h3>
-            <span class="gov-pill ok-pill">Прямой вызов</span>
-          </div>
-          <div class="gov-card__body">
-            <div class="emergency-phones">
-              <a href="tel:112" class="phone-card">
-                <div class="phone-card__num">112</div>
-                <div class="phone-card__desc">Единая служба экстренного реагирования</div>
-              </a>
-              <a href="tel:+78617767276" class="phone-card">
-                <div class="phone-card__num">+7 (8617) 76-72-76</div>
-                <div class="phone-card__desc">МБУ «Безопасный город — ЕДДС» Новороссийск</div>
-              </a>
-              <a href="tel:+79284140620" class="phone-card">
-                <div class="phone-card__num">+7 (928) 414-06-20</div>
-                <div class="phone-card__desc">Диспетчер Новороссийского лесопожарного центра</div>
-              </a>
-            </div>
-
-            <div class="memo-box">
-              <h4>Действия при лесном пожаре на Маркотхе:</h4>
-              <ul>
-                <li>Не пытайтесь сбивать пламя при порывах норд-оста выше 10 м/с.</li>
-                <li>Выходите из зоны огня навстречу ветру по открытым скальным участкам.</li>
-                <li>Избегайте узких ущелий и щелей — огонь поднимается по склону со скоростью до 25 км/ч.</li>
-              </ul>
+        
+        <div class="card">
+          <div class="card-header">Службы экстренного реагирования г. Новороссийск</div>
+          <div class="card-body">
+            <a href="tel:112" class="phone-link"><b>112</b> — Единая служба спасения</a>
+            <a href="tel:+78617767276" class="phone-link"><b>+7 (8617) 76-72-76</b> — ЕДДС Новороссийск</a>
+            <div class="feed-box">
+              <h4>Публичная лента событий:</h4>
+              <div id="publicEventFeed" class="feed"></div>
             </div>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- ВКЛАДКА 3: АППАРАТНАЯ ПЛАТФОРМА (3D) -->
-    <section id="hardwareTab" class="tab-view">
-      <div class="gov-grid-2">
+    <!-- ВКЛАДКА: АППАРАТ -->
+    <section id="hardwareTab" class="tab-content">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">Модель датчика</div>
+          <div class="card-body"><div id="node3dCanvas" style="height:250px; background:#f1f5f9; border-radius:6px;"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">Спецификация</div>
+          <div class="card-body">
+            <ul class="spec-list">
+              <li><b>Ядро:</b> Микроконтроллер ESP32-S3</li>
+              <li><b>Связь:</b> Радиомодуль LoRa SX1262 (868 МГц)</li>
+              <li><b>Сенсоры:</b> Bosch BME280, газоанализатор CCS811</li>
+              <li><b>Питание:</b> Аккумулятор LiFePO4 + Солнечная панель</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ВКЛАДКА: ПУЛЬТ (Скрыта) -->
+    <section id="operatorTab" class="tab-content hidden">
+      <div class="grid-2">
+        <div class="card dispatch-card" id="dispatchCard" style="display:none;">
+          <div class="card-header bg-red">ВНИМАНИЕ: ЗАФИКСИРОВАН ОЧАГ</div>
+          <div class="card-body">
+            <p id="dispatchTarget"><b>Локация:</b> ...</p>
+            <p id="dispatchTele"><b>Телеметрия:</b> ...</p>
+            <div class="io-box">
+              <span id="dispatchIOName">Дежурный: ...</span>
+              <span id="dispatchIOPhone">Тел: ...</span>
+            </div>
+            <select id="rescueUnit" class="input-select" style="margin-top:10px;">
+              <option>ПСЧ-8 (ул. Котовского)</option>
+              <option>Патруль Лесхоза</option>
+            </select>
+            <button id="assignBtn" class="btn btn-danger" style="margin-top:10px; width:100%">Подтвердить выезд</button>
+          </div>
+        </div>
         
-        <!-- Контейнер для 3D модели -->
-        <div class="gov-card">
-          <div class="gov-card__header">
-            <h3>Интерактивная 3D-модель EcoNet-Node v1.2</h3>
-            <span class="gov-pill">Three.js Engine</span>
-          </div>
-          <div class="gov-card__body 3d-wrapper">
-            <div id="node3dCanvas" class="canvas-3d-box"></div>
-            <div class="canvas-hint">Удерживайте левую кнопку мыши для вращения • Колесо для масштабирования</div>
+        <div class="card">
+          <div class="card-header">Состояние участков</div>
+          <div class="card-body">
+            <div id="sectorsTable" class="sectors-table"></div>
           </div>
         </div>
-
-        <!-- Техническая спецификация для комиссии -->
-        <div class="gov-card">
-          <div class="gov-card__header">
-            <h3>Инженерные характеристики и смета узла</h3>
-            <span class="gov-pill ok-pill">2 150 ₽ / шт</span>
-          </div>
-          <div class="gov-card__body">
-            <div class="spec-table">
-              <div class="spec-row">
-                <span class="spec-key">Вычислительное ядро:</span>
-                <span class="spec-val">ESP32-S3 (Dual-Core 240MHz, 8MB Flash)</span>
-              </div>
-              <div class="spec-row">
-                <span class="spec-key">Связь и радиомодем:</span>
-                <span class="spec-val">LoRa SX1262 (868 МГц, Mesh-ретрансляция, до 10 км)</span>
-              </div>
-              <div class="spec-row">
-                <span class="spec-key">Метеодатчик:</span>
-                <span class="spec-val">Bosch BME280 (Температура ±0.5°C, Влажность, Давление)</span>
-              </div>
-              <div class="spec-row">
-                <span class="spec-key">Газоанализатор:</span>
-                <span class="spec-val">CCS811 / MQ-135 (Угарный газ CO, пиролиз древесины)</span>
-              </div>
-              <div class="spec-row">
-                <span class="spec-key">Автономное питание:</span>
-                <span class="spec-val">LiFePO4 18650 (2000 mAh) + солнечная панель 5V 1.5W</span>
-              </div>
-              <div class="spec-row">
-                <span class="spec-key">Класс защиты корпуса:</span>
-                <span class="spec-val">Герметичный корпус ASA-пластик IP67 с лабиринтным забором воздуха</span>
-              </div>
-              <div class="spec-row">
-                <span class="spec-key">Срок автономной работы:</span>
-                <span class="spec-val">Не менее 36 месяцев без обслуживания</span>
-              </div>
-            </div>
-
-            <div class="calc-box">
-              <strong>Экономический эффект для Новороссийска:</strong>
-              <p>Оборудование Маркотхского массива периметром из 45 узлов обходится менее чем в 100 000 ₽, что в 18 раз дешевле одной оптико-локационной вышки и полностью окупается предотвращением хотя бы одного часа верхового пожара.</p>
-            </div>
-          </div>
-        </div>
-
       </div>
     </section>
   </main>
 
-  <!-- МОДАЛЬНОЕ ОКНО ПРАВОВОГО НАПОМИНАНИЯ (ст. 19.13 КоАП РФ) -->
-  <div id="confirmLegalModal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-card__header">
-        <span class="modal-icon">🛡️</span>
-        <h3>Подтверждение передачи сигнала оператору ЕДДС</h3>
-      </div>
-      <div class="modal-card__body">
-        <p class="modal-text">
-          Координаты и описание инцидента направляются дежурному диспетчеру ЕДДС Новороссийска для проверки и сопоставления с телеметрией сети EcoNet Mesh.
-        </p>
-        <div class="legal-box">
-          <strong>Правовое напоминание:</strong> Обработка заведомо недостоверных сообщений отвлекает оперативные расчеты от спасения жизней и влечет административную ответственность согласно ст. 19.13 КоАП РФ.
-        </div>
-      </div>
-      <div class="modal-card__footer">
-        <button id="modalCancelBtn" class="ctrl-btn ctrl-btn--secondary">Вернуться</button>
-        <button id="modalConfirmBtn" class="ctrl-btn ctrl-btn--primary">Подтверждаю отправку</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Библиотеки: Leaflet, Three.js и OrbitControls -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
