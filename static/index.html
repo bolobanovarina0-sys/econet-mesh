@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoNet Mesh: Мониторинг</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="app">
+  <div id="map"></div>
+
+  <aside class="sidebar">
+    <header class="sidebar__header">
+      <div class="logo-dot"></div>
+      <div>
+        <h1>EcoNet Mesh</h1>
+        <p class="subtitle">Мониторинг</p>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>Статус системы</h2>
+      <div class="status-grid">
+        <div class="status-box">
+          <span class="status-value" id="nodeCount">0</span>
+          <span class="status-label">Активных нод</span>
+        </div>
+        <div class="status-box">
+          <span class="status-value" id="alarmCount">0</span>
+          <span class="status-label">Тревог</span>
+        </div>
+      </div>
+      <div class="connection-line">
+        <span id="connDot" class="conn-dot"></span>
+        <span id="connText">Подключение...</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <button id="simulateBtn" class="fire-btn">🔥 ТЕСТ: СИМУЛЯЦИЯ ПОЖАРА</button>
+      <!-- Новая кнопка для выгрузки отчета -->
+      <button id="exportBtn" style="background: #00f2fe; color: #111a22; margin-top: 10px; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-family: inherit; cursor: pointer; text-transform: uppercase; transition: opacity 0.2s;">
+        📊 СКАЧАТЬ EXCEL-ОТЧЕТ
+      </button>
+    </section>
+
+    <section class="panel panel--grow">
+      <h2>Лента событий</h2>
+      <div id="eventLog" class="event-log">
+        <p class="event-log__empty">Событий пока нет</p>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

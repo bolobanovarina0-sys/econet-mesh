@@ -1,0 +1,344 @@
+:root {
+  --bg: #0a0e14;
+  --panel: #10161f;
+  --panel-alt: #131b26;
+  --border: #1e2a38;
+  --accent: #00e5ff;
+  --accent-dim: #00a3b3;
+  --danger: #ff3b5c;
+  --warning: #ffb020;
+  --ok: #00ff9d;
+  --text: #d6e2f0;
+  --text-dim: #6b7c93;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Consolas", monospace, sans-serif;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+#map {
+  width: 75%;
+  height: 100%;
+  background: #0a0e14;
+  filter: saturate(1.1) contrast(1.05);
+}
+
+.sidebar {
+  width: 25%;
+  min-width: 320px;
+  height: 100%;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.sidebar__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent), 0 0 24px var(--accent);
+  flex-shrink: 0;
+}
+
+.sidebar__header h1 {
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.panel {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.panel--grow {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panel h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.status-grid {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.status-box {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+
+.status-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.status-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+#alarmCount {
+  color: var(--danger);
+  text-shadow: 0 0 10px rgba(255, 59, 92, 0.5);
+}
+
+.connection-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.conn-dot.connected {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+
+.conn-dot.disconnected {
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
+
+.fire-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--danger), #b3163a);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 20px rgba(255, 59, 92, 0.35);
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.fire-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 30px rgba(255, 59, 92, 0.55);
+}
+
+.fire-btn:active {
+  transform: translateY(0);
+}
+
+.fire-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.event-log {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+}
+
+.event-log__empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  margin: auto 0;
+}
+
+.event-item {
+  background: var(--bg);
+  border-left: 3px solid var(--danger);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  animation: slideIn 0.3s ease;
+}
+
+.event-item__time {
+  color: var(--text-dim);
+  font-size: 10px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.event-item__msg {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Leaflet popup dark theme override */
+.leaflet-popup-content-wrapper {
+  background: var(--panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.leaflet-popup-tip {
+  background: var(--panel-alt);
+}
+
+.node-popup__title {
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.node-popup__row {
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-dim);
+}
+
+.node-popup__row span:last-child {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Pulsing fire marker */
+.fire-marker {
+  position: relative;
+}
+
+.fire-marker__core {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 10px var(--danger);
+}
+
+.fire-marker__pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--danger);
+  transform: translate(-50%, -50%);
+  animation: pulse 1.4s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 0;
+  }
+}
+/* Определение пульсирующей красной тревоги */
+.fire-pulse {
+    background-color: red !important;
+    border-color: red !important;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+    animation: fire-pulse 1.5s infinite;
+}
+
+@keyframes fire-pulse {
+    0% {
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 0, 0, 1), 0 0 30px rgba(255, 100, 100, 0.8);
+        transform: scale(1.1);
+    }
+    100% {
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+        transform: scale(1);
+    }
+}
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+  #map {
+    width: 100%;
+    height: 55%;
+  }
+  .sidebar {
+    width: 100%;
+    height: 45%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
