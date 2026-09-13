@@ -315,45 +315,35 @@ function addEventStreamItem(evt) {
   streamEl.prepend(item);
 }
 
-// --------------------------------------------------------------------------
-// 7. WebSocket клиент
-// --------------------------------------------------------------------------
-function initWebSocket() {
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(`${protocol}://${window.location.host}/ws`);
-
-  ws.onmessage = (message) => {
-    const data = JSON.parse(message.data);
-
+// WEBSOCKET
+function initWS() {
+  const ws = new WebSocket(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`);
+  ws.onmessage = (msg) => {
+    const data = JSON.parse(msg.data);
     if (data.type === "init") {
       if (data.weather) {
-        weatherState = data.weather;
-        const wEl = document.getElementById("weatherWind");
-        if (wEl) wEl.textContent = `С-В (Норд-ост), ${weatherState.wind_speed} м/с`;
+        weatherWindSpeed = data.weather.wind_speed;
+        weatherWindDir = data.weather.wind_direction;
+        
+        // Заполняем виджет погоды
+        document.getElementById("weatherTemp").textContent = `${data.weather.temp}°C`;
+        document.getElementById("weatherHum").textContent = `${data.weather.humidity}%`;
+        document.getElementById("weatherWind").textContent = `${weatherWindSpeed} м/с (С-В)`;
       }
-      data.nodes.forEach((n) => upsertNode(n));
-      data.events.forEach((ev) => addEventStreamItem(ev));
-      if (data.incidents && data.incidents.length > 0) {
-        const activeInc = data.incidents.find((i) => i.status === "WAITING_OPERATOR");
-        if (activeInc) displayIncidentOnConsole(activeInc);
-      }
+      data.nodes.forEach(updateNode);
+      data.events.forEach(addFeedItem);
     } else if (data.type === "telemetry") {
-      upsertNode(data.node);
+      updateNode(data.node);
     } else if (data.type === "event") {
-      addEventStreamItem(data);
+      addFeedItem(data);
     } else if (data.type === "new_incident") {
-      displayIncidentOnConsole(data.incident);
-    } else if (data.type === "incident_updated") {
-      if (currentActiveIncident && currentActiveIncident.id === data.incident.id) {
-        document.getElementById("dispatchCard").style.display = "none";
-      }
+      showIncident(data.incident);
+      if(!isOperator) alert("ВНИМАНИЕ: Поступил новый сигнал по Новороссийску. Требуется авторизация оператора!");
     }
   };
-
-  ws.onclose = () => setTimeout(initWebSocket, 2500);
+  ws.onclose = () => setTimeout(initWS, 3000);
 }
-initWebSocket();
-
+initWS();
 // Служебные кнопки
 document.getElementById("simulateBtn").addEventListener("click", () => fetch("/api/simulate-fire", { method: "POST" }));
 document.getElementById("resetBtn").addEventListener("click", () => fetch("/api/reset", { method: "POST" }));
