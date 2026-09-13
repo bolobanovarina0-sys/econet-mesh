@@ -23,8 +23,8 @@ document.getElementById("loginBtn").addEventListener("click", () => {
     document.getElementById("adminControls").classList.remove("hidden");
     document.getElementById("operatorTabBtn").classList.remove("hidden");
     document.getElementById("operatorTabBtn").click();
-    alert("Доступ разрешен. Пульт дежурного активирован.");
-    updateTable(); // Перерисовываем таблицу с учетом прав оператора
+    alert("Доступ разрешен. Пульт дежурного синхронизирован.");
+    updateTable();
   } else if (pwd !== null) {
     alert("Неверный пароль!");
   }
@@ -57,7 +57,6 @@ function updateNode(node) {
     iconSize: [16,16], iconAnchor: [8,8]
   });
 
-  // ИО виден в попапе только если авторизован оператор
   let popup = `<b>${node.name}</b><br>T: ${node.temp}°C | CO2: ${node.co2}`;
   if (isOperator) {
     popup += `<br><span style="color:#b45309">Отв: ${node.io_name} (${node.io_phone})</span>`;
@@ -88,7 +87,6 @@ function updateTable() {
     stBadge.style.color = "var(--ok)";
   }
 
-  // Если оператор не вошел — скрываем телефоны ИО в таблице пульта
   document.getElementById("sectorsTable").innerHTML = list.map(n => `
     <div class="sec-row ${n.status === 'ТРЕВОГА' ? 'alarm' : ''}">
       <span><b>${n.name}</b><br><small style="color:var(--text-muted)">${isOperator ? 'Отв: ' + n.io_name + ' (' + n.io_phone + ')' : 'Сектор мониторинга ЕДДС'}</small></span>
@@ -97,18 +95,19 @@ function updateTable() {
   `).join("");
 }
 
+// Надежный вывод в обе ленты (гражданскую и операторскую)
 function addFeedItem(evt) {
-  const feed = document.getElementById("publicEventFeed");
-  const opStream = document.getElementById("operatorEventStream");
-  
   const html = `<span class="time">[${evt.timestamp} МСК]</span>${evt.message}`;
   
+  const feed = document.getElementById("publicEventFeed");
   if(feed) {
     const div = document.createElement("div");
     div.className = `event-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
     div.innerHTML = html;
     feed.prepend(div);
   }
+
+  const opStream = document.getElementById("operatorEventStream");
   if(opStream) {
     const div = document.createElement("div");
     div.className = `event-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
@@ -136,31 +135,38 @@ document.getElementById("citizenForm").addEventListener("submit", async (e) => {
     description: "Сигнал от жителя"
   };
   await fetch("/api/citizen-report", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(data) });
-  alert("Сигнал передан в ЕДДС Новороссийск. Проверено по регламенту ст. 19.13 КоАП РФ.");
+  alert("Сигнал успешно передан в ЕДДС Новороссийск и отображен в ленте.");
   e.target.reset();
   document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
 });
 
-// Отображение инцидента на пульте
+// Синхронизация инцидента на пульте
 function showIncident(inc) {
   currentIncidentId = inc.id;
-  document.getElementById("dispatchCard").style.display = "block";
+  const card = document.getElementById("dispatchCard");
+  const noText = document.getElementById("noIncidentText");
+  if(card) card.style.display = "block";
+  if(noText) noText.style.display = "none";
+  
   document.getElementById("dispatchTarget").innerHTML = `<b>Локация:</b> ${inc.location_name} (Узел: ${inc.nearest_node})`;
   document.getElementById("dispatchTele").innerHTML = `<b>Телеметрия:</b> ${inc.sensor_telemetry}`;
   document.getElementById("dispatchIO").innerHTML = `Ответственный ИО: <b>${inc.io_name}</b> (${inc.io_phone})`;
 }
 
 document.getElementById("assignBtn").addEventListener("click", async () => {
+  if (!currentIncidentId) return;
   const unit = document.getElementById("rescueUnit").value;
   await fetch("/api/operator/dispatch", {
     method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ incident_id: currentIncidentId, assigned_unit: unit })
   });
   document.getElementById("dispatchCard").style.display = "none";
+  document.getElementById("noIncidentText").style.display = "block";
   alert("Оперативный наряд успешно направлен.");
+  currentIncidentId = null;
 });
 
-// Управление
+// Кнопки управления
 document.getElementById("syncBtn").addEventListener("click", () => { window.location.reload(); });
 document.getElementById("simulateBtn").addEventListener("click", () => fetch("/api/simulate-fire", { method: "POST" }));
 document.getElementById("resetBtn").addEventListener("click", () => fetch("/api/reset", { method: "POST" }));
@@ -177,7 +183,7 @@ document.querySelectorAll(".role-tab").forEach(tab => {
   });
 });
 
-// WebSocket
+// WebSocket с полной синхронизацией
 function initWS() {
   const ws = new WebSocket(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`);
   ws.onmessage = (msg) => {
@@ -190,6 +196,10 @@ function initWS() {
       }
       data.nodes.forEach(updateNode);
       data.events.forEach(addFeedItem);
+      if (data.incidents && data.incidents.length > 0) {
+        const activeInc = data.incidents.find(i => i.status === "ОЖИДАЕТ");
+        if (activeInc) showIncident(activeInc);
+      }
     } else if (data.type === "telemetry") {
       updateNode(data.node);
     } else if (data.type === "event") {
