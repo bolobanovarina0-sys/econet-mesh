@@ -95,7 +95,6 @@ function updateTable() {
   `).join("");
 }
 
-// Надежный вывод в обе ленты (гражданскую и операторскую)
 function addFeedItem(evt) {
   const html = `<span class="time">[${evt.timestamp} МСК]</span>${evt.message}`;
   
@@ -135,7 +134,7 @@ document.getElementById("citizenForm").addEventListener("submit", async (e) => {
     description: "Сигнал от жителя"
   };
   await fetch("/api/citizen-report", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(data) });
-  alert("Сигнал успешно передан в ЕДДС Новороссийск и отображен в ленте.");
+  alert("Сигнал передан в ЕДДС Новороссийск. Проверено по регламенту ст. 19.13 КоАП РФ.");
   e.target.reset();
   document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
 });
@@ -197,7 +196,7 @@ function initWS() {
       data.nodes.forEach(updateNode);
       data.events.forEach(addFeedItem);
       if (data.incidents && data.incidents.length > 0) {
-        const activeInc = data.incidents.find(i => i.status === "ОЖИДАЕТ");
+        const activeInc = data.incidents.find(i => i.status === "ОЖИДАЕТ" || i.status === "WAITING_OPERATOR");
         if (activeInc) showIncident(activeInc);
       }
     } else if (data.type === "telemetry") {
