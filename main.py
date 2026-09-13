@@ -20,9 +20,6 @@ MSK = timezone(timedelta(hours=3), name="MSK")
 def get_msk_time():
     return datetime.now(MSK).strftime("%H:%M:%S")
 
-# ---------------------------------------------------------------------------
-# Секторы мониторинга с привязкой ИО
-# ---------------------------------------------------------------------------
 FOREST_SECTORS = [
     {"id": "УЗЕЛ-01", "name": "Полигон ТКО г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
     {"id": "УЗЕЛ-02", "name": "Урочище Сухая Щель", "lat": 44.6780, "lng": 37.6040, "is_critical": True, "io_name": "Петров С.Н.", "io_phone": "+7 (928) 222-33-44"},
@@ -176,7 +173,7 @@ async def handle_citizen_report(report: CitizenReportIn):
     public_event = {
         "type": "event",
         "level": "CITIZEN",
-        "message": f"Зафиксирован сигнал от населения: {report.location_name}. Данные проверяются.",
+        "message": f"Сигнал от жителя: {report.location_name} ({report.description}). Проверка телеметрии.",
         "timestamp": get_msk_time()
     }
     events.append(public_event)
@@ -240,8 +237,47 @@ async def reset_simulation():
             "io_name": s["io_name"],
             "io_phone": s["io_phone"]
         }
-    await manager.broadcast({"type": "init", "nodes": list(nodes.values()), "events": [], "weather": current_weather})
+    await manager.broadcast({"type": "init", "nodes": list(nodes.values()), "events": [], "incidents": incidents, "weather": current_weather})
     return {"ok": True}
+
+@app.get("/api/export")
+async def export_excel():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Сводка ЕДДС Новороссийск"
+    
+    ws.append(["ID", "Сектор / Объект", "Категория", "Статус", "T (°C)", "CO2 (ppm)", "Влажность", "Заряд"])
+    for cell in ws[1]:
+        cell.font = openpyxl.styles.Font(bold=True)
+    
+    for s in nodes.values():
+        ws.append([
+            s["node_id"],
+            s["name"],
+            "Объект риска" if s["is_critical"] else "Лесной массив",
+            s["status"],
+            s["temp"],
+            s["co2"],
+            f"{s['humidity']}%",
+            f"{s['battery']}%"
+        ])
+
+    ws_inc = wb.create_sheet(title="Журнал выездов расчетов")
+    ws_inc.append(["№ Вызова", "Время", "Локация", "Статус"])
+    for cell in ws_inc[1]:
+        cell.font = openpyxl.styles.Font(bold=True)
+
+    for inc in incidents:
+        ws_inc.append([
+            inc["id"],
+            inc["timestamp"],
+            inc["location_name"],
+            inc["status"]
+        ])
+
+    file_path = "mchs_summary.xlsx"
+    wb.save(file_path)
+    return FileResponse(file_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=f"EcoNet_EDDS_{datetime.now().strftime('%d_%m_%Y')}.xlsx")
 
 @app.on_event("startup")
 async def startup_event():
@@ -275,6 +311,7 @@ async def websocket_endpoint(websocket: WebSocket):
             "type": "init",
             "nodes": list(nodes.values()),
             "events": events[-40:],
+            "incidents": incidents,
             "weather": current_weather
         }))
         while True:
