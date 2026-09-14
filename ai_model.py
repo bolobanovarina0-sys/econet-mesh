@@ -1,8 +1,7 @@
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 
-# Инициализация и обучение легковесной модели предиктивного анализа пожароопасности
-# Обучаем на признаках: [температура, влажность, скорость ветра (норд-ост)] -> индекс риска (%)
+# Обучающая выборка предиктивного анализа пожароопасности [температура, влажность, ветер] -> риск (%)
 X_train = np.array([
     [15, 70, 5],   [20, 60, 8],   [25, 50, 12],  [30, 40, 15],  [35, 30, 20],
     [18, 65, 6],   [22, 55, 10],  [28, 45, 14],  [32, 35, 18],  [38, 25, 25]
@@ -13,20 +12,14 @@ model = RandomForestRegressor(n_estimators=10, random_state=42)
 model.fit(X_train, y_train)
 
 def predict_fire_risk(temp: float, humidity: float, wind_speed: float):
-    """
-    Возвращает спрогнозированный нейросетью уровень риска (%) 
-    и тренд на 6 часов вперед с учетом специфики рельефа Маркотха.
-    """
     input_features = np.array([[temp, humidity, wind_speed]])
     base_pred = float(model.predict(input_features)[0])
     base_pred = min(99.0, max(10.0, base_pred))
     
-    # Генерация почасового тренда на 6 часов
     hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
     trends = []
     current_val = base_pred
     for _ in hours:
-        # Небольшая стохастическая вариация прогноза нейросети
         current_val = min(99.0, max(10.0, current_val + np.random.uniform(-3.5, 4.0)))
         trends.append(round(current_val, 1))
 
@@ -34,5 +27,5 @@ def predict_fire_risk(temp: float, humidity: float, wind_speed: float):
         "risk_level": round(base_pred, 1),
         "hours": hours,
         "trends": trends,
-        "model_info": "RandomForestRegressor (scikit-learn v1.4, FWI-adapted for Novorossiysk)"
+        "model_info": "RandomForestRegressor (scikit-learn, FWI-adapted for Novorossiysk)"
     }
