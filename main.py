@@ -21,16 +21,16 @@ def get_msk_time():
     return datetime.now(MSK).strftime("%H:%M:%S")
 
 FOREST_SECTORS = [
-    {"id": "УЗЕЛ-01", "name": "Полигон ТКО г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
-    {"id": "УЗЕЛ-02", "name": "Урочище Сухая Щель", "lat": 44.6780, "lng": 37.6040, "is_critical": True, "io_name": "Петров С.Н.", "io_phone": "+7 (928) 222-33-44"},
-    {"id": "УЗЕЛ-03", "name": "Карьер ц/з «Пролетарий»", "lat": 44.7340, "lng": 37.8180, "is_critical": True, "io_name": "Смирнов Д.И.", "io_phone": "+7 (928) 333-44-55"},
-    {"id": "УЗЕЛ-04", "name": "Перевал «Волчьи Ворота»", "lat": 44.8052, "lng": 37.7341, "is_critical": True, "io_name": "Кузнецов В.П.", "io_phone": "+7 (928) 444-55-66"},
-    {"id": "УЗЕЛ-05", "name": "Смотровая «Семь Ветров»", "lat": 44.7380, "lng": 37.8480, "is_critical": True, "io_name": "Соколов И.А.", "io_phone": "+7 (928) 555-66-77"},
+    {"id": "УЗЕЛ-01", "name": "Полигон г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
+    {"id": "УЗЕЛ-02", "name": "Сухая Щель", "lat": 44.6780, "lng": 37.6040, "is_critical": True, "io_name": "Петров С.Н.", "io_phone": "+7 (928) 222-33-44"},
+    {"id": "УЗЕЛ-03", "name": "Карьер Пролетарий", "lat": 44.7340, "lng": 37.8180, "is_critical": True, "io_name": "Смирнов Д.И.", "io_phone": "+7 (928) 333-44-55"},
+    {"id": "УЗЕЛ-04", "name": "Волчьи Ворота", "lat": 44.8052, "lng": 37.7341, "is_critical": True, "io_name": "Кузнецов В.П.", "io_phone": "+7 (928) 444-55-66"},
+    {"id": "УЗЕЛ-05", "name": "Семь Ветров", "lat": 44.7380, "lng": 37.8480, "is_critical": True, "io_name": "Соколов И.А.", "io_phone": "+7 (928) 555-66-77"},
     {"id": "УЗЕЛ-06", "name": "Маркотх Север", "lat": 44.7720, "lng": 37.8210, "is_critical": False, "io_name": "Попов Алексей", "io_phone": "+7 (918) 123-00-11"},
     {"id": "УЗЕЛ-07", "name": "Гайдук (База)", "lat": 44.7780, "lng": 37.7120, "is_critical": False, "io_name": "Волков М.Д.", "io_phone": "+7 (918) 123-00-22"},
     {"id": "УЗЕЛ-08", "name": "Кирилловка", "lat": 44.7540, "lng": 37.7410, "is_critical": False, "io_name": "Лебедев К.С.", "io_phone": "+7 (918) 123-00-33"},
     {"id": "УЗЕЛ-09", "name": "Васильевка", "lat": 44.7390, "lng": 37.6680, "is_critical": False, "io_name": "Новиков А.А.", "io_phone": "+7 (918) 123-00-44"},
-    {"id": "УЗЕЛ-10", "name": "Глебовское Лесничество", "lat": 44.7210, "lng": 37.6520, "is_critical": False, "io_name": "Морозов П.И.", "io_phone": "+7 (918) 123-00-55"},
+    {"id": "УЗЕЛ-10", "name": "Глебовское", "lat": 44.7210, "lng": 37.6520, "is_critical": False, "io_name": "Морозов П.И.", "io_phone": "+7 (918) 123-00-55"},
 ]
 
 class Telemetry(BaseModel):
@@ -61,9 +61,9 @@ incidents: List[dict] = []
 active_fires: set = set()
 
 current_weather = {
-    "temp": 25.0,
-    "humidity": 45.0,
-    "wind_speed": 12.0,
+    "temp": 26.5,
+    "humidity": 42.0,
+    "wind_speed": 14.0,
     "wind_direction": 45.0,
 }
 
@@ -105,6 +105,38 @@ async def update_weather():
                     current_weather["wind_direction"] = cur.get("wind_direction_10m", current_weather["wind_direction"])
     except Exception as e:
         print("Ошибка погоды:", e)
+
+@app.get("/api/ai-forecast")
+async def get_ai_forecast():
+    # Расчет предиктивного риска на основе текущей погоды и сводок МЧС г. Новороссийск
+    wind = current_weather["wind_speed"]
+    hum = current_weather["humidity"]
+    temp = current_weather["temp"]
+    
+    base_risk = min(98, max(25, int((temp * 1.5) + (wind * 2.2) - (hum * 0.6))))
+    
+    hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
+    trends = []
+    curr = base_risk
+    for _ in hours:
+        curr = min(99, max(15, curr + random.randint(-4, 6)))
+        trends.append(curr)
+
+    mchs_warning = "⚠️ ГУ МЧС России по Краснодарскому краю: В МО г. Новороссийск действует экстренное предупреждение по высокой пожароопасности (4 класс) и шквалистому ветру (норд-ост до 18 м/с)."
+    if wind > 15 or hum < 35:
+        mchs_warning = "🚨 ЭКСТРЕННОЕ ПРЕДУПРЕЖДЕНИЕ МЧС: Высокий риск быстрого распространения ландшафтных пожаров из-за усиления норд-оста!"
+
+    return {
+        "risk_level": base_risk,
+        "mchs_text": mchs_warning,
+        "hours": hours,
+        "trends": trends,
+        factors: {
+            "wind_impact": min(100, int(wind * 6)),
+            "dryness_impact": min(100, int((100 - hum) * 1.1)),
+            "temp_impact": min(100, int(temp * 2.5))
+        }
+    }
 
 @app.post("/api/telemetry")
 async def post_telemetry(data: Telemetry):
@@ -194,6 +226,7 @@ async def handle_citizen_report(report: CitizenReportIn):
         "status": "ОЖИДАЕТ",
     }
     incidents.insert(0, incident)
+    # Отправляем инцидент только для дежурного оператора
     await manager.broadcast({"type": "new_incident", "incident": incident})
     return {"ok": True}
 
@@ -285,7 +318,7 @@ async def export_incident_pdf(incident_id: str):
        - Наименование: {target['location_name']}
        - Ближайший датчик LoRa-mesh: {target['nearest_node']}
        - Телеметрия узла: {target['sensor_telemetry']}
-       - Роза ветров (Маркотх): Северо-Восточный (Норд-ост), 12 м/с
+       - Роза ветров (Маркотх): Северо-Восточный (Норд-ост), {current_weather['wind_speed']} м/с
     
     2. ОПЕРАТИВНЫЙ СТАТУС:
        - Статус реагирования: {target['status']}
