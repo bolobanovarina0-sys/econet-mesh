@@ -112,13 +112,11 @@
     .mission-banner__content p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
     .mission-banner__content b { color: var(--primary); }
 
-    /* Плавающий виджет лайка */
     .floating-like { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 30px; padding: 10px 18px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); cursor: pointer; transition: 0.2s; }
     .floating-like:hover { border-color: var(--primary); transform: translateY(-2px); }
     .floating-like__icon { font-size: 18px; color: #ef4444; }
     .floating-like__count { font-weight: 700; font-family: var(--font-mono); color: #fff; }
 
-    /* Модальное окно благодарности */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
     .modal-overlay.open { opacity: 1; pointer-events: auto; }
     .modal-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 24px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -390,7 +388,7 @@
     </section>
   </main>
 
-  <!-- Блок поддержки проекта (появляется при прокрутке в самом низу) -->
+  <!-- Блок поддержки проекта внизу -->
   <div style="max-width: 1300px; margin: 20px auto; padding: 0 20px; width: 100%;">
     <div class="gov-card" style="margin-bottom: 0;">
       <div class="gov-card__header">
@@ -398,7 +396,7 @@
       </div>
       <div class="gov-card__body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <p style="font-size: 11px; color: var(--text-muted); max-width: 800px; line-height: 1.5;">
-          Если вам нравится наша система превентивного экологического мониторинга и вы хотите поддержать ее внедрение в муниципалитетах, поставьте лайк! Голоса защищены от накрутки (один голос с одного IP-адреса).
+          Если вам нравится наша система превентивного экологического мониторинга, поддержите проект лайком! Голоса защищены от накрутки (один голос с одного IP-адреса).
         </p>
         <button id="footerLikeBtn" class="ctrl-btn ctrl-btn--secondary" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px;">
           <span style="font-size: 16px; color: #ef4444;">❤️</span>
@@ -491,7 +489,6 @@
       btn.textContent = soundEnabled ? "🔊 Звук: ВКЛ" : "🔇 Звук: ВЫКЛ";
     });
 
-    // Синхронизация лайков с сервером (проверка IP и защита)
     async function fetchLikes() {
       try {
         const resp = await fetch("/api/likes");
@@ -545,10 +542,9 @@
       }
     });
 
-    // Ограничение кнопки AI на 6 часов (проверка через localStorage таймер)
     function checkAiCooldown() {
       const lastCalc = localStorage.getItem("last_ai_calc");
-      const cooldownMs = 6 * 60 * 60 * 1000; // 6 часов
+      const cooldownMs = 6 * 60 * 60 * 1000;
       if (lastCalc) {
         const elapsed = Date.now() - parseInt(lastCalc);
         if (elapsed < cooldownMs) {
@@ -561,8 +557,6 @@
 
     async function loadAiForecast(forced = false) {
       const cooldownHours = checkAiCooldown();
-      const btn = document.getElementById("calcAiBtn");
-
       if (forced && cooldownHours > 0) {
         alert(`Повторный расчет ИИ будет доступен через ${cooldownHours} ч. (защита от перегрузки сервера).`);
         return;
@@ -868,7 +862,7 @@
       scene.add(light);
       const group = new THREE.Group();
       const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.8), new THREE.MeshStandardMaterial({color: 0x334155, roughness:0.4}));
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.6), new THREE.MeshStandardMaterial({color: 0x0f172a, metalness:0.8}));
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.6), newX = new THREE.MeshStandardMaterial({color: 0x0f172a, metalness:0.8}));
       panel.position.set(0, 0.95, 0);
       const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), new THREE.MeshStandardMaterial({color: 0x1e293b}));
       antenna.position.set(0.4, 1.5, -0.2);
