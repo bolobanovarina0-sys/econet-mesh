@@ -7,14 +7,15 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 
 import aiohttp
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
+from ai_model import predict_fire_risk
+
 app = FastAPI(title="АПК ЭкоСеть (Новороссийск)")
 
-# --- НАСТРОЙКА МОСКОВСКОГО ВРЕМЕНИ (UTC+3) ---
 MSK = timezone(timedelta(hours=3), name="MSK")
 
 def get_msk_time():
@@ -59,6 +60,9 @@ nodes: Dict[str, dict] = {}
 events: List[dict] = []
 incidents: List[dict] = []
 active_fires: set = set()
+
+# Хранилище лайков и IP для предотвращения накрутки
+likes_db = {"count": 184, "voted_ips": set()}
 
 current_weather = {
     "temp": 26.5,
@@ -108,35 +112,38 @@ async def update_weather():
 
 @app.get("/api/ai-forecast")
 async def get_ai_forecast():
-    # Расчет предиктивного риска на основе текущей погоды и сводок МЧС г. Новороссийск
-    wind = current_weather["wind_speed"]
-    hum = current_weather["humidity"]
-    temp = current_weather["temp"]
+    # Вызов автономной нейросети из ai_model.py
+    ai_res = predict_fire_risk(
+        temp=current_weather["temp"],
+        humidity=current_weather["humidity"],
+        wind_speed=current_weather["wind_speed"]
+    )
     
-    base_risk = min(98, max(25, int((temp * 1.5) + (wind * 2.2) - (hum * 0.6))))
-    
-    hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
-    trends = []
-    curr = base_risk
-    for _ in hours:
-        curr = min(99, max(15, curr + random.randint(-4, 6)))
-        trends.append(curr)
-
-    mchs_warning = "⚠️ ГУ МЧС России по Краснодарскому краю: В МО г. Новороссийск действует экстренное предупреждение по высокой пожароопасности (4 класс) и шквалистому ветру (норд-ост до 18 м/с)."
-    if wind > 15 or hum < 35:
-        mchs_warning = "🚨 ЭКСТРЕННОЕ ПРЕДУПРЕЖДЕНИЕ МЧС: Высокий риск быстрого распространения ландшафтных пожаров из-за усиления норд-оста!"
+    mchs_warning = f"⚠️ ГУ МЧС по Краснодарскому краю: В МО г. Новороссийск действует экстренное предупреждение. Модель ИИ [{ai_res['model_info']}] фиксирует повышенный риск из-за норд-оста ({current_weather['wind_speed']} м/с)."
 
     return {
-        "risk_level": base_risk,
+        "risk_level": ai_res["risk_level"],
         "mchs_text": mchs_warning,
-        "hours": hours,
-        "trends": trends,
-        factors: {
-            "wind_impact": min(100, int(wind * 6)),
-            "dryness_impact": min(100, int((100 - hum) * 1.1)),
-            "temp_impact": min(100, int(temp * 2.5))
-        }
+        "hours": ai_res["hours"],
+        "trends": ai_res["trends"],
+        "model_info": ai_res["model_info"]
     }
+
+@app.get("/api/likes")
+async def get_likes(request: Request):
+    client_ip = request.client.host
+    already_voted = client_ip in likes_db["voted_ips"]
+    return {"count": likes_db["count"], "voted": already_voted}
+
+@app.post("/api/like")
+async def post_like(request: Request):
+    client_ip = request.client.host
+    if client_ip in likes_db["voted_ips"]:
+        return {"ok": False, "message": "Вы уже поддержали проект с этого IP!", "count": likes_db["count"]}
+    
+    likes_db["voted_ips"].add(client_ip)
+    likes_db["count"] += 1
+    return {"ok": True, "count": likes_db["count"]}
 
 @app.post("/api/telemetry")
 async def post_telemetry(data: Telemetry):
@@ -226,7 +233,6 @@ async def handle_citizen_report(report: CitizenReportIn):
         "status": "ОЖИДАЕТ",
     }
     incidents.insert(0, incident)
-    # Отправляем инцидент только для дежурного оператора
     await manager.broadcast({"type": "new_incident", "incident": incident})
     return {"ok": True}
 
