@@ -61,7 +61,6 @@ events: List[dict] = []
 incidents: List[dict] = []
 active_fires: set = set()
 
-# Хранилище лайков и IP для предотвращения накрутки
 likes_db = {"count": 184, "voted_ips": set()}
 
 current_weather = {
@@ -112,15 +111,12 @@ async def update_weather():
 
 @app.get("/api/ai-forecast")
 async def get_ai_forecast():
-    # Вызов автономной нейросети из ai_model.py
     ai_res = predict_fire_risk(
         temp=current_weather["temp"],
         humidity=current_weather["humidity"],
         wind_speed=current_weather["wind_speed"]
     )
-    
     mchs_warning = f"⚠️ ГУ МЧС по Краснодарскому краю: В МО г. Новороссийск действует экстренное предупреждение. Модель ИИ [{ai_res['model_info']}] фиксирует повышенный риск из-за норд-оста ({current_weather['wind_speed']} м/с)."
-
     return {
         "risk_level": ai_res["risk_level"],
         "mchs_text": mchs_warning,
@@ -140,7 +136,6 @@ async def post_like(request: Request):
     client_ip = request.client.host
     if client_ip in likes_db["voted_ips"]:
         return {"ok": False, "message": "Вы уже поддержали проект с этого IP!", "count": likes_db["count"]}
-    
     likes_db["voted_ips"].add(client_ip)
     likes_db["count"] += 1
     return {"ok": True, "count": likes_db["count"]}
@@ -176,7 +171,6 @@ async def post_telemetry(data: Telemetry):
         active_fires.add(data.node_id)
 
     sector = next((s for s in FOREST_SECTORS if s["id"] == data.node_id), None)
-    
     node_rec = {
         "node_id": data.node_id,
         "name": sector["name"] if sector else data.node_id,
