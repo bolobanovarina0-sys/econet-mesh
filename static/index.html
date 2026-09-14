@@ -112,7 +112,7 @@
     .mission-banner__content p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
     .mission-banner__content b { color: var(--primary); }
 
-    /* Плавающий виджет лайка в правом нижнем углу */
+    /* Плавающий виджет лайка */
     .floating-like { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 30px; padding: 10px 18px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); cursor: pointer; transition: 0.2s; }
     .floating-like:hover { border-color: var(--primary); transform: translateY(-2px); }
     .floating-like__icon { font-size: 18px; color: #ef4444; }
@@ -196,10 +196,9 @@
       <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного оператора ЕДДС</button>
     </nav>
 
-    <!-- ВКЛАДКА 1: Гражданский контроль + AI-прогноз МЧС -->
+    <!-- ВКЛАДКА 1 -->
     <section id="citizenTab" class="tab-view active">
       <div class="gov-grid-2">
-        <!-- Левая колонка: Форма гражданина -->
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Передать сигнал о задымлении диспетчеру</h3>
@@ -236,11 +235,10 @@
           </div>
         </div>
 
-        <!-- Правая колонка: AI-Прогноз и предупреждения МЧС -->
         <div class="gov-card">
           <div class="gov-card__header">
-            <h3>🤖 AI-Прогноз и предупреждения МЧС (Новороссийск)</h3>
-            <span class="gov-pill ok-pill">Предиктивная аналитика</span>
+            <h3>🤖 ИИ-Модель прогноза и сводки МЧС (Random Forest)</h3>
+            <span class="gov-pill ok-pill">Автономный модуль</span>
           </div>
           <div class="gov-card__body">
             <div id="mchsAlertBox" style="font-size:11px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 10px; border-radius: 5px; margin-bottom: 12px; color: #fca5a5; line-height: 1.4;">
@@ -248,23 +246,21 @@
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 11px; color: var(--text-muted);">Индекс пожарного риска: <b id="riskValText" style="color:#fff;">--%</b></span>
-              <button id="calcAiBtn" class="ctrl-btn ctrl-btn--secondary" style="font-size: 10px; padding: 4px 8px;">🔄 Обновить расчет</button>
+              <span style="font-size: 11px; color: var(--text-muted);">Индекс риска (ИИ): <b id="riskValText" style="color:#fff;">--%</b></span>
+              <button id="calcAiBtn" class="ctrl-btn ctrl-btn--secondary" style="font-size: 10px; padding: 4px 8px;" title="Доступно раз в 6 часов">🔄 Рассчитать прогноз</button>
             </div>
 
-            <!-- График AI-прогноза -->
             <div style="height: 140px; margin-bottom: 10px; background: rgba(15, 23, 42, 0.5); padding: 6px; border-radius: 4px;">
               <canvas id="aiChart"></canvas>
             </div>
 
             <p id="aiExplanation" style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-              Нажмите кнопку обновления для построения динамического предиктивного тренда на 6 часов вперед с учетом текущих порывов норд-оста.
+              Расчет выполняется автономным модулем машинного обучения на бэкенде. Ограничение частоты запросов защищает сервер от перегрузки.
             </p>
           </div>
         </div>
       </div>
 
-      <!-- Вторая строка первого таба: Лента событий и телефоны -->
       <div class="gov-grid-2" style="margin-top: 16px;">
         <div class="gov-card">
           <div class="gov-card__header">
@@ -293,13 +289,13 @@
         <div class="mission-banner__content">
           <h4>О миссии комплекса АПК «ЭкоСеть»</h4>
           <p>
-            Платформа реализует концепцию превентивного экологического мониторинга. Сообщения граждан и данные LoRa-mesh датчиков обрабатываются нейросетевыми алгоритмами для предотвращения масштабных верховых пожаров на Маркотхском хребте.
+            Платформа реализует концепцию превентивного экологического мониторинга с применением алгоритмов предиктивного анализа.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- ВКЛАДКА 2: Аппаратный модуль (3D) -->
+    <!-- ВКЛАДКА 2 -->
     <section id="hardwareTab" class="tab-view">
       <div class="gov-grid-2">
         <div class="gov-card">
@@ -321,14 +317,14 @@
             <div><b>Связь:</b> LoRa SX1262 (868 МГц, Mesh-ретрансляция до 10 км без GSM)</div>
             <div><b>Сенсоры:</b> Bosch BME280 + газоанализатор CCS811 (раннее детектирование CO на стадии тления)</div>
             <div style="background: rgba(34, 197, 94, 0.1); border-left: 3px solid var(--ok); padding: 8px; border-radius: 4px; color: #4ade80; margin-top: 4px;">
-              💡 <b>Предотвращение издержек:</b> Автономная ячеистая сеть исключает миллионные убытки от масштабных пожаров за счет реагирования в первые 5 минут.
+              💡 <b>Предотвращение издержек:</b> Автономная ячеистая сеть исключает миллионные убытки за счет реагирования в первые 5 минут.
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ВКЛАДКА 3: ПУЛЬТ ОПЕРАТОРА (Только по паролю admin) -->
+    <!-- ВКЛАДКА 3 -->
     <section id="operatorTab" class="tab-view">
       <div class="gov-grid-3">
         <div class="gov-card">
@@ -394,18 +390,36 @@
     </section>
   </main>
 
+  <!-- Блок поддержки проекта (появляется при прокрутке в самом низу) -->
+  <div style="max-width: 1300px; margin: 20px auto; padding: 0 20px; width: 100%;">
+    <div class="gov-card" style="margin-bottom: 0;">
+      <div class="gov-card__header">
+        <h3>❤️ Поддержка и развитие проекта АПК «ЭкоСеть»</h3>
+      </div>
+      <div class="gov-card__body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <p style="font-size: 11px; color: var(--text-muted); max-width: 800px; line-height: 1.5;">
+          Если вам нравится наша система превентивного экологического мониторинга и вы хотите поддержать ее внедрение в муниципалитетах, поставьте лайк! Голоса защищены от накрутки (один голос с одного IP-адреса).
+        </p>
+        <button id="footerLikeBtn" class="ctrl-btn ctrl-btn--secondary" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px;">
+          <span style="font-size: 16px; color: #ef4444;">❤️</span>
+          <span>Поддержать проект (<b id="footerLikeCount">184</b>)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Плавающий виджет лайка в правом нижнем углу -->
-  <div id="floatingLikeBtn" class="floating-like" title="Поддержать проект">
+  <div id="floatingLikeBtn" class="floating-like" title="Поддержать проект лайком">
     <span class="floating-like__icon">❤️</span>
-    <span style="font-size:12px; font-weight:600; color:#fff;">Оценить проект</span>
-    <span id="likeCount" class="floating-like__count">184</span>
+    <span style="font-size:12px; font-weight:600; color:#fff;">Оценить</span>
+    <span id="floatingLikeCount" class="floating-like__count">184</span>
   </div>
 
   <!-- Модальное окно благодарности -->
   <div id="likeModal" class="modal-overlay">
     <div class="modal-box">
-      <h3>❤️ Спасибо за поддержку!</h3>
-      <p>Ваша оценка помогает развитию автономной системы раннего обнаружения АПК «ЭкоСеть».</p>
+      <h3>❤️ Спасибо за вашу поддержку!</h3>
+      <p id="modalMsg">Ваш голос успешно учтен в системе открытого голосования АПК «ЭкоСеть».</p>
       <button id="closeModalBtn" class="ctrl-btn ctrl-btn--primary">Закрыть</button>
     </div>
   </div>
@@ -414,7 +428,7 @@
     <div class="gov-footer__container">
       <div class="gov-footer__col">
         <div class="gov-footer__title">АПК «ЭкоСеть» • Новороссийск</div>
-        <p class="gov-footer__text">Система автоматизированного экологического и лесопожарного мониторинга на базе ячеистых радиосетей.</p>
+        <p class="gov-footer__text">Система автоматизированного экологического и лесопожарного мониторинга.</p>
         <div class="demo-badge">⚠️ Демонстрационный вариант. Данные носят учебный характер.</div>
       </div>
       <div class="gov-footer__col">
@@ -477,18 +491,40 @@
       btn.textContent = soundEnabled ? "🔊 Звук: ВКЛ" : "🔇 Звук: ВЫКЛ";
     });
 
-    // Логика виджета лайков
-    let likesCount = 184;
-    let hasLiked = false;
-    document.getElementById("floatingLikeBtn").addEventListener("click", () => {
-      if(!hasLiked) {
-        likesCount++;
-        hasLiked = true;
-        document.getElementById("likeCount").textContent = likesCount;
-        document.getElementById("floatingLikeBtn").style.borderColor = "#ef4444";
-      }
-      document.getElementById("likeModal").classList.add("open");
-    });
+    // Синхронизация лайков с сервером (проверка IP и защита)
+    async function fetchLikes() {
+      try {
+        const resp = await fetch("/api/likes");
+        const data = await resp.json();
+        document.getElementById("floatingLikeCount").textContent = data.count;
+        document.getElementById("footerLikeCount").textContent = data.count;
+        if(data.voted) {
+          document.getElementById("floatingLikeBtn").style.borderColor = "#ef4444";
+          document.getElementById("footerLikeBtn").style.opacity = "0.7";
+        }
+      } catch(e) {}
+    }
+    fetchLikes();
+
+    async function sendLike() {
+      try {
+        const resp = await fetch("/api/like", { method: "POST" });
+        const data = await resp.json();
+        document.getElementById("floatingLikeCount").textContent = data.count;
+        document.getElementById("footerLikeCount").textContent = data.count;
+        
+        if (data.ok) {
+          document.getElementById("modalMsg").textContent = "Ваш голос успешно учтен! Спасибо за поддержку проекта.";
+          document.getElementById("floatingLikeBtn").style.borderColor = "#ef4444";
+        } else {
+          document.getElementById("modalMsg").textContent = data.message || "Вы уже голосовали с данного IP-адреса.";
+        }
+        document.getElementById("likeModal").classList.add("open");
+      } catch(e) {}
+    }
+
+    document.getElementById("floatingLikeBtn").addEventListener("click", sendLike);
+    document.getElementById("footerLikeBtn").addEventListener("click", sendLike);
     document.getElementById("closeModalBtn").addEventListener("click", () => {
       document.getElementById("likeModal").classList.remove("open");
     });
@@ -509,15 +545,36 @@
       }
     });
 
-    // Загрузка AI-прогноза и отрисовка графика Chart.js
-    async function loadAiForecast() {
+    // Ограничение кнопки AI на 6 часов (проверка через localStorage таймер)
+    function checkAiCooldown() {
+      const lastCalc = localStorage.getItem("last_ai_calc");
+      const cooldownMs = 6 * 60 * 60 * 1000; // 6 часов
+      if (lastCalc) {
+        const elapsed = Date.now() - parseInt(lastCalc);
+        if (elapsed < cooldownMs) {
+          const remainingHours = Math.ceil((cooldownMs - elapsed) / (1000 * 60 * 60));
+          return remainingHours;
+        }
+      }
+      return 0;
+    }
+
+    async function loadAiForecast(forced = false) {
+      const cooldownHours = checkAiCooldown();
+      const btn = document.getElementById("calcAiBtn");
+
+      if (forced && cooldownHours > 0) {
+        alert(`Повторный расчет ИИ будет доступен через ${cooldownHours} ч. (защита от перегрузки сервера).`);
+        return;
+      }
+
       try {
         const resp = await fetch("/api/ai-forecast");
         const data = await resp.json();
         
         document.getElementById("mchsAlertBox").textContent = data.mchs_text;
         document.getElementById("riskValText").textContent = data.risk_level + "%";
-        document.getElementById("aiExplanation").innerHTML = `<b>Анализ факторов МЧС:</b> Ветер ${weatherWindSpeed} м/с, влажность воздуха оказывают ключевое влияние. Риск возгорания по прогнозу на ближайшие часы составляет <b>${data.risk_level}%</b>.`;
+        document.getElementById("aiExplanation").innerHTML = `<b>Модель ИИ (${data.model_info}):</b> Анализ телеметрии и порывов норд-оста (${weatherWindSpeed} м/с). Индекс риска составляет <b>${data.risk_level}%</b>.`;
 
         const ctx = document.getElementById("aiChart").getContext("2d");
         if (aiChartInstance) aiChartInstance.destroy();
@@ -546,12 +603,17 @@
             }
           }
         });
+
+        if (forced) {
+          localStorage.setItem("last_ai_calc", Date.now().toString());
+          alert("Автономный расчет нейросети успешно выполнен и зафиксирован в журнале.");
+        }
       } catch(e) {
         console.log("AI forecast error", e);
       }
     }
 
-    document.getElementById("calcAiBtn").addEventListener("click", loadAiForecast);
+    document.getElementById("calcAiBtn").addEventListener("click", () => loadAiForecast(true));
 
     function drawCones() {
       fireConesLayer.clearLayers();
@@ -772,17 +834,14 @@
             const activeInc = data.incidents.find(i => i.status === "ОЖИДАЕТ" || i.status === "WAITING_OPERATOR");
             if (activeInc) showIncident(activeInc);
           }
-          loadAiForecast();
+          loadAiForecast(false);
         } else if (data.type === "telemetry") {
           updateNode(data.node);
         } else if (data.type === "event") {
           addFeedItem(data);
         } else if (data.type === "new_incident") {
-          // ИНЦИДЕНТ ПОКАЗЫВАЕМ СТРОГО ОПЕРАТОРУ!
           if(isOperator) {
             showIncident(data.incident);
-          } else {
-            console.log("Входящий сигнал ЕДДС зафиксирован (режим гражданина).");
           }
         }
       };
