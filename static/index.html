@@ -1,290 +1,441 @@
-import http.server
-import socketserver
-import json
-import random
-import urllib.parse
-import os
-import threading
-import time
-from datetime import datetime, timezone, timedelta
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg-main: #121824; --bg-surface: #1a2233; --bg-card: #202b40;
+      --border-color: #2e3d59; --text-main: #f8fafc; --text-muted: #94a3b8;
+      --primary: #38bdf8; --danger: #ef4444; --danger-bg: rgba(239, 68, 68, 0.12); --ok: #22c55e;
+    }
+    body.light-theme {
+      --bg-main: #f1f5f9; --bg-surface: #ffffff; --bg-card: #ffffff;
+      --border-color: #cbd5e1; --text-main: #0f172a; --text-muted: #64748b; --primary: #0284c7;
+    }
+    body.accessibility-theme {
+      --bg-main: #000000; --bg-surface: #000000; --bg-card: #000000;
+      --border-color: #ffffff; --text-main: #ffff00; --text-muted: #ffffff; --primary: #00ffff; --danger: #ff0000;
+    }
+    body.accessibility-theme * { border-color: #ffffff !important; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    html, body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; font-size: 13px; }
+    .sys-header { background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; z-index: 1001; }
+    .sys-brand { display: flex; align-items: center; gap: 10px; }
+    .status-pulse { width: 9px; height: 9px; background: var(--ok); border-radius: 50%; box-shadow: 0 0 6px var(--ok); }
+    .sys-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .sys-tag { font-size: 10px; background: var(--bg-card); color: var(--primary); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); }
+    .sys-sub { font-size: 11px; color: var(--text-muted); }
+    .sys-metrics { display: flex; gap: 8px; flex-wrap: wrap; }
+    .metric-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px 10px; font-size: 11px; display: flex; gap: 6px; align-items: center; }
+    .metric-lbl { color: var(--text-muted); }
+    .metric-val { font-weight: 600; font-family: monospace; }
+    .danger-text { color: var(--danger) !important; }
+    .map-section { position: relative; height: 38vh; min-height: 250px; border-bottom: 1px solid var(--border-color); z-index: 1; }
+    #map { width: 100%; height: 100%; background: #0b0f17; }
+    .map-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; background: var(--bg-surface); padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .hidden { display: none !important; }
+    .ctrl-btn { padding: 7px 12px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); color: var(--text-main); }
+    .ctrl-btn--danger { background: var(--danger); color: #fff; border: none; }
+    .ctrl-btn--warning { background: #d97706; color: #fff; border: none; }
+    .ctrl-btn--primary { background: var(--primary); color: #0f172a; width: 100%; padding: 10px; font-weight: 700; border: none; }
+    .workspace { display: flex; flex-direction: column; flex: 1; padding-bottom: 20px; }
+    .role-nav { display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 0 20px; overflow-x: auto; }
+    .role-tab { background: none; border: none; color: var(--text-muted); padding: 11px 16px; font-size: 12px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .role-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-view { display: none !important; padding: 16px 20px; }
+    .tab-view.active { display: block !important; }
+    .gov-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .gov-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .gov-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 16px; }
+    .gov-card__header { padding: 10px 14px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .gov-card__header h3 { font-size: 12px; font-weight: 700; }
+    .gov-pill { font-size: 10px; font-weight: 600; background: var(--bg-main); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); text-transform: uppercase; }
+    .gov-pill.ok-pill { color: var(--ok); border-color: var(--ok); }
+    .gov-card__body { padding: 14px; font-size: 12px; }
+    .section-intro { color: var(--text-muted); margin-bottom: 12px; font-size: 11px; background: var(--bg-main); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); }
+    .legal-notice { font-size: 11px; color: var(--text-main); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 8px 10px; border-radius: 5px; margin: 8px 0; }
+    .gov-form { display: flex; flex-direction: column; gap: 10px; }
+    .form-row { display: flex; flex-direction: column; gap: 5px; }
+    .form-row label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .fast-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .tag-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+    .gov-form input, .gov-form textarea, .gov-select { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 10px; border-radius: 5px; font-size: 12px; width: 100%; }
+    .emergency-phones { display: flex; flex-direction: column; gap: 6px; }
+    .phone-card { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 5px; padding: 8px 12px; text-decoration: none; display: flex; justify-content: space-between; color: var(--text-main); font-size: 12px; }
+    .phone-card span { font-weight: 700; color: var(--primary); font-family: monospace; }
+    .event-feed { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .event-item { background: var(--bg-main); border-left: 3px solid var(--primary); padding: 6px 8px; border-radius: 4px; font-size: 11px; }
+    .event-item.alarm { border-left-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
+    .time { color: var(--text-muted); font-size: 10px; font-family: monospace; margin-right: 6px; }
+    .dispatch-alert { background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 5px; padding: 10px; margin-bottom: 12px; }
+    .dispatch-alert__title { font-size: 11px; font-weight: 800; color: var(--danger); margin-bottom: 4px; }
+    .sectors-table { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .sec-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 6px 10px; border-radius: 4px; font-size: 11px; }
+    .sec-row.alarm { background: var(--danger-bg); border-left: 3px solid var(--danger); color: var(--danger); }
+    .floating-like { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 30px; padding: 10px 18px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 24px; width: 320px; text-align: center; }
+    .gov-footer { background: var(--bg-surface); border-top: 1px solid var(--border-color); padding: 24px 20px; margin-top: 40px; }
+    .gov-footer__container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 24px; }
+    .gov-footer__title { font-size: 12px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; }
+    .gov-footer__text { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+    .gov-footer__links { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .gov-footer__links a { font-size: 11px; color: var(--text-muted); text-decoration: none; }
+    .demo-badge { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fde047; padding: 6px 10px; border-radius: 4px; font-size: 10px; margin-top: 10px; }
+    .node-pin { width: 12px; height: 12px; background: var(--ok); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 6px rgba(34, 197, 94, 0.6); }
+    .node-pin.alarm { width: 15px; height: 15px; background: var(--danger); box-shadow: 0 0 12px var(--danger); animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.35); } 100% { transform: scale(1); } }
+  </style>
+</head>
+<body>
+  <header class="sys-header">
+    <div class="sys-brand">
+      <span class="status-pulse"></span>
+      <div>
+        <div class="sys-title">АПК ЭКОСЕТЬ <span class="sys-tag">ЕДДС-112 • НОВОРОССИЙСК</span></div>
+        <div class="sys-sub">Автономная ячеистая LoRa-сеть раннего обнаружения ландшафтных возгораний</div>
+      </div>
+    </div>
+    <div class="sys-metrics">
+      <div class="metric-box"><span class="metric-lbl">Метео:</span><span class="metric-val" id="weatherDisplay">--°C | --% | С-В, -- м/с</span></div>
+      <div class="metric-box"><span class="metric-lbl">Класс:</span><span class="metric-val danger-text">IV (Высокий)</span></div>
+      <div class="metric-box"><span class="metric-lbl">Узлов:</span><span class="metric-val" id="activeNodesCount">10 / 10</span></div>
+      <div class="metric-box"><span class="metric-lbl">Периметр:</span><span class="metric-val" id="networkStatusBadge" style="color: var(--ok);">НОРМА</span></div>
+    </div>
+    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+      <button id="themeToggleBtn" class="ctrl-btn">☀️ Тема</button>
+      <button id="accessibilityToggleBtn" class="ctrl-btn">👁️ Слабовидящим</button>
+      <button id="loginBtn" class="ctrl-btn">🔒 Вход</button>
+    </div>
+  </header>
 
-MSK = timezone(timedelta(hours=3), name="MSK")
+  <section class="map-section">
+    <div id="map"></div>
+    <div id="adminControls" class="map-controls hidden">
+      <button id="syncBtn" class="ctrl-btn">🔄 Синхр.</button>
+      <button id="simulateBtn" class="ctrl-btn ctrl-btn--danger">🔥 Симуляция</button>
+      <button id="resetBtn" class="ctrl-btn">Сброс</button>
+    </div>
+  </section>
 
-def get_msk_time():
-    return datetime.now(MSK).strftime("%H:%M:%S")
+  <main class="workspace">
+    <nav class="role-nav">
+      <button class="role-tab active" data-tab="citizenTab">🌲 Гражданский контроль и AI-прогноз</button>
+      <button class="role-tab" data-tab="hardwareTab">🔬 Аппаратный модуль (3D)</button>
+      <button id="operatorTabBtn" class="role-tab hidden" data-tab="operatorTab">🚨 Пульт дежурного оператора ЕДДС</button>
+    </nav>
 
-LIKES_FILE = "likes.json"
+    <section id="citizenTab" class="tab-view active">
+      <div class="gov-grid-2">
+        <div class="gov-card">
+          <div class="gov-card__header"><h3>Передать сигнал о задымлении диспетчеру</h3><span class="gov-pill">Анонимно</span></div>
+          <div class="gov-card__body">
+            <p class="section-intro">Комплекс непрерывного экологического мониторинга в МО г. Новороссийск.</p>
+            <form id="citizenForm" class="gov-form">
+              <div class="form-row">
+                <label>Объект повышенного риска:</label>
+                <div class="fast-tags">
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-01">Полигон г. Щелба</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-02">Сухая Щель</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-03">Карьер Пролетарий</button>
+                  <button type="button" class="tag-btn" data-sec="УЗЕЛ-04">Волчьи Ворота</button>
+                </div>
+              </div>
+              <div class="form-row"><label for="citLoc">Точный ориентир:</label><input type="text" id="citLoc" placeholder="Например: Склон над Борисовкой" required></div>
+              <div class="form-row"><label for="citDesc">Описание ситуации:</label><textarea id="citDesc" rows="2" placeholder="Густой серый дым..." required></textarea></div>
+              <div class="legal-notice">⚠️ Заведомо ложный вызов влечет административную ответственность по ст. 19.13 КоАП РФ.</div>
+              <button type="submit" class="ctrl-btn ctrl-btn--primary">Отправить сообщение в ЕДДС</button>
+            </form>
+          </div>
+        </div>
+        <div class="gov-card">
+          <div class="gov-card__header"><h3>🤖 ИИ-Модель прогноза (Random Forest)</h3><span class="gov-pill ok-pill">Автономно</span></div>
+          <div class="gov-card__body">
+            <div id="mchsAlertBox" style="font-size:11px; background: var(--danger-bg); border: 1px solid var(--danger); padding: 8px; border-radius: 5px; margin-bottom: 12px; color: var(--danger);">Загрузка прогноза...</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: var(--text-muted);">Индекс риска: <b id="riskValText">--%</b></span>
+              <button id="calcAiBtn" class="ctrl-btn" style="font-size: 10px; padding: 4px 8px;">🔄 Обновить</button>
+            </div>
+            <div style="height: 140px; background: var(--bg-main); padding: 6px; border-radius: 4px; border: 1px solid var(--border-color);"><canvas id="aiChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-def load_likes():
-    if os.path.exists(LIKES_FILE):
-        try:
-            with open(LIKES_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("count", 0), set(data.get("voted_ips", []))
-        except Exception:
-            pass
-    return 0, set()
+    <section id="hardwareTab" class="tab-view">
+      <div class="gov-grid-2">
+        <div class="gov-card">
+          <div class="gov-card__header"><h3>Интерактивная 3D-модель EcoNet-Node v1.2</h3><span class="gov-pill">Three.js</span></div>
+          <div class="gov-card__body"><div id="node3dCanvas" style="height:220px; background:var(--bg-main); border-radius:4px;"></div></div>
+        </div>
+        <div class="gov-card">
+          <div class="gov-card__header"><h3>Преимущества</h3><span class="gov-pill ok-pill">Экономия</span></div>
+          <div class="gov-card__body" style="font-size:12px; display:flex; flex-direction:column; gap:10px;">
+            <div><b>Микроконтроллер:</b> ESP32-S3</div>
+            <div><b>Связь:</b> LoRa SX1262 (до 10 км без GSM)</div>
+            <div><b>Сенсоры:</b> Bosch BME280 + CCS811</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-def save_likes(count, voted_ips):
-    try:
-        with open(LIKES_FILE, "w", encoding="utf-8") as f:
-            json.dump({"count": count, "voted_ips": list(voted_ips)}, f)
-    except Exception:
-        pass
+    <section id="operatorTab" class="tab-view">
+      <div class="gov-grid-3">
+        <div class="gov-card">
+          <div class="gov-card__header"><h3>Протокол реагирования</h3><span class="gov-pill">ЕДДС</span></div>
+          <div class="gov-card__body">
+            <div id="dispatchCard" class="dispatch-alert" style="display: none;">
+              <div class="dispatch-alert__title">⚠️ ТРЕБУЕТСЯ ВМЕШАТЕЛЬСТВО</div>
+              <div id="dispatchTarget" style="font-weight:600; margin-bottom:4px;">Локация: ...</div>
+              <div id="dispatchTele" style="font-size:11px; margin-bottom:6px;">Телеметрия: ...</div>
+              <div id="dispatchIO" style="font-size:11px; margin-bottom:8px;">Ответственный: ...</div>
+              <select id="rescueUnit" class="gov-select" style="margin-bottom:8px;">
+                <option>ПСЧ-8 (ул. Котовского) — АЦ-40</option>
+                <option>Патруль Новороссийского лесхоза</option>
+              </select>
+              <div style="display: flex; gap: 6px;">
+                <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="flex:1;">Выезд</button>
+                <button id="rejectBtn" class="ctrl-btn ctrl-btn--warning" style="flex:1;">Ложный</button>
+              </div>
+            </div>
+            <div id="noIncidentText" style="font-size:11px; color:var(--text-muted); text-align:center; padding: 15px 0;">Ожидание вызовов...</div>
+          </div>
+        </div>
+        <div class="gov-card"><div class="gov-card__header"><h3>Журнал событий</h3></div><div class="gov-card__body"><div id="operatorEventStream" class="event-feed"></div></div></div>
+        <div class="gov-card"><div class="gov-card__header"><h3>Секторы</h3></div><div class="gov-card__body"><div id="sectorsTable" class="sectors-table"></div></div></div>
+      </div>
+    </section>
+  </main>
 
-likes_count, voted_ips = load_likes()
+  <div style="max-width: 1300px; margin: 20px auto; padding: 0 20px; width: 100%;">
+    <div class="gov-card" style="margin-bottom: 0;">
+      <div class="gov-card__header"><h3>❤️ Поддержка проекта</h3></div>
+      <div class="gov-card__body" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+        <p style="font-size: 11px; color: var(--text-muted);">Поддержите проект лайком! Голоса защищены от накрутки по IP.</p>
+        <button id="footerLikeBtn" class="ctrl-btn" style="display: flex; gap: 8px;"><span style="color: #ef4444;">❤️</span><span>Поддержать (<b id="footerLikeCount">0</b>)</span></button>
+      </div>
+    </div>
+  </div>
 
-CURRENT_WEATHER = {
-    "temp": 26.5,
-    "humidity": 42.0,
-    "wind_speed": 14.0,
-    "wind_direction": 45.0,
-}
+  <div id="floatingLikeBtn" class="floating-like"><span style="color: #ef4444;">❤️</span><span>Оценить</span><span id="floatingLikeCount" style="font-weight:bold;">0</span></div>
 
-FOREST_SECTORS = [
-    {"id": "УЗЕЛ-01", "name": "Полигон г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
-    {"id": "УЗЕЛ-02", "name": "Сухая Щель", "lat": 44.6780, "lng": 37.6040, "is_critical": True, "io_name": "Петров С.Н.", "io_phone": "+7 (928) 222-33-44"},
-    {"id": "УЗЕЛ-03", "name": "Карьер Пролетарий", "lat": 44.7340, "lng": 37.8180, "is_critical": True, "io_name": "Смирнов Д.И.", "io_phone": "+7 (928) 333-44-55"},
-    {"id": "УЗЕЛ-04", "name": "Волчьи Ворота", "lat": 44.8052, "lng": 37.7341, "is_critical": True, "io_name": "Кузнецов В.П.", "io_phone": "+7 (928) 444-55-66"},
-    {"id": "УЗЕЛ-05", "name": "Семь Ветров", "lat": 44.7380, "lng": 37.8480, "is_critical": True, "io_name": "Соколов И.А.", "io_phone": "+7 (928) 555-66-77"},
-    {"id": "УЗЕЛ-06", "name": "Маркотх Север", "lat": 44.7720, "lng": 37.8210, "is_critical": False, "io_name": "Попов Алексей", "io_phone": "+7 (918) 123-00-11"},
-    {"id": "УЗЕЛ-07", "name": "Гайдук (База)", "lat": 44.7780, "lng": 37.7120, "is_critical": False, "io_name": "Волков М.Д.", "io_phone": "+7 (918) 123-00-22"},
-    {"id": "УЗЕЛ-08", "name": "Кирилловка", "lat": 44.7540, "lng": 37.7410, "is_critical": False, "io_name": "Лебедев К.С.", "io_phone": "+7 (918) 123-00-33"},
-    {"id": "УЗЕЛ-09", "name": "Васильевка", "lat": 44.7390, "lng": 37.6680, "is_critical": False, "io_name": "Новиков А.А.", "io_phone": "+7 (918) 123-00-44"},
-    {"id": "УЗЕЛ-10", "name": "Глебовское", "lat": 44.7210, "lng": 37.6520, "is_critical": False, "io_name": "Морозов П.И.", "io_phone": "+7 (918) 123-00-55"},
-]
+  <div id="likeModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3>❤️ Спасибо!</h3>
+      <p id="modalMsg" style="font-size: 12px; color: var(--text-muted); margin: 10px 0;">Ваш голос учтен.</p>
+      <button id="closeModalBtn" class="ctrl-btn ctrl-btn--primary">Закрыть</button>
+    </div>
+  </div>
 
-nodes_state = {}
-events_list = []
-incidents_list = []
-active_fires = set()
+  <footer class="gov-footer">
+    <div class="gov-footer__container">
+      <div class="gov-footer__col"><div class="gov-footer__title">АПК «ЭкоСеть»</div><p class="gov-footer__text">Система эко-мониторинга.</p><div class="demo-badge">⚠️ Демонстрационный режим.</div></div>
+      <div class="gov-footer__col"><div class="gov-footer__title">Правовые сведения</div><ul class="gov-footer__links"><li><a href="#">Политика 152-ФЗ</a></li><li><a href="#">Регламент ЕДДС</a></li></ul></div>
+      <div class="gov-footer__col"><div class="gov-footer__title">Разработчик</div><p class="gov-footer__text"><b>Болобанова Арина Сергеевна</b><br>arina.bolobanova@yandex.ru</p></div>
+    </div>
+  </footer>
 
-def reset_simulation_state():
-    active_fires.clear()
-    events_list.clear()
-    incidents_list.clear()
-    events_list.append({
-        "level": "INFO",
-        "message": "Система АПК «ЭкоСеть» инициализирована. Опрос LoRa-периметра активен.",
-        "timestamp": get_msk_time()
-    })
-    for s in FOREST_SECTORS:
-        nodes_state[s["id"]] = {
-            "node_id": s["id"],
-            "name": s["name"],
-            "lat": s["lat"],
-            "lng": s["lng"],
-            "is_critical": s["is_critical"],
-            "temp": round(random.uniform(22.0, 25.0), 1),
-            "humidity": round(random.uniform(40.0, 50.0), 1),
-            "co2": random.randint(380, 420),
-            "battery": random.randint(85, 100),
-            "status": "НОРМА",
-            "io_name": s["io_name"],
-            "io_phone": s["io_phone"]
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([44.736, 37.738], 12);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16 }).addTo(map);
+
+    const markersMap = {};
+    const nodesCache = {};
+    let currentIncidentId = null;
+    let isOperator = false;
+    let aiChartInstance = null;
+
+    function setTheme(mode) {
+      document.body.classList.remove("light-theme", "accessibility-theme");
+      if (mode === "light") document.body.classList.add("light-theme");
+      else if (mode === "accessibility") document.body.classList.add("accessibility-theme");
+      localStorage.setItem("app_theme", mode);
+    }
+    setTheme(localStorage.getItem("app_theme") || "dark");
+
+    document.getElementById("themeToggleBtn").addEventListener("click", () => setTheme(localStorage.getItem("app_theme") === "light" ? "dark" : "light"));
+    document.getElementById("accessibilityToggleBtn").addEventListener("click", () => setTheme(localStorage.getItem("app_theme") === "accessibility" ? "dark" : "accessibility"));
+
+    async function fetchLikes() {
+      try {
+        const resp = await fetch("/api/likes");
+        const data = await resp.json();
+        document.getElementById("floatingLikeCount").textContent = data.count;
+        document.getElementById("footerLikeCount").textContent = data.count;
+      } catch(e) {}
+    }
+    fetchLikes();
+
+    async function sendLike() {
+      try {
+        const resp = await fetch("/api/like", { method: "POST" });
+        const data = await resp.json();
+        document.getElementById("floatingLikeCount").textContent = data.count;
+        document.getElementById("footerLikeCount").textContent = data.count;
+        document.getElementById("modalMsg").textContent = data.ok ? "Ваш голос успешно учтен!" : (data.message || "Вы уже голосовали.");
+        document.getElementById("likeModal").classList.add("open");
+      } catch(e) {}
+    }
+    document.getElementById("floatingLikeBtn").addEventListener("click", sendLike);
+    document.getElementById("footerLikeBtn").addEventListener("click", sendLike);
+    document.getElementById("closeModalBtn").addEventListener("click", () => document.getElementById("likeModal").classList.remove("open"));
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const pwd = prompt("Пароль ЕДДС:");
+      if (pwd === "admin") {
+        isOperator = true;
+        document.getElementById("loginBtn").style.display = "none";
+        document.getElementById("adminControls").classList.remove("hidden");
+        document.getElementById("operatorTabBtn").classList.remove("hidden");
+        document.getElementById("operatorTabBtn").click();
+      } else if (pwd !== null) { alert("Неверно!"); }
+    });
+
+    function updateNode(node) {
+      nodesCache[node.node_id] = node;
+      const isAlarm = node.status === "ТРЕВОГА";
+      const icon = L.divIcon({ className: "", html: `<div class="node-pin ${isAlarm ? 'alarm' : ''}"></div>`, iconSize: [16,16], iconAnchor: [8,8] });
+      let popup = `<b>${node.name}</b><br>T: ${node.temp}°C | CO2: ${node.co2}`;
+      if (markersMap[node.node_id]) {
+        markersMap[node.node_id].setIcon(icon);
+        markersMap[node.node_id].setPopupContent(popup);
+      } else {
+        markersMap[node.node_id] = L.marker([node.lat, node.lng], {icon}).bindPopup(popup).addTo(map);
+      }
+      updateTable();
+    }
+
+    function updateTable() {
+      const list = Object.values(nodesCache);
+      const alarms = list.filter(n => n.status === "ТРЕВОГА");
+      document.getElementById("activeNodesCount").textContent = `${list.length} / 10`;
+      const stBadge = document.getElementById("networkStatusBadge");
+      if (alarms.length > 0) { stBadge.textContent = `ТРЕВОГА`; stBadge.style.color = "var(--danger)"; }
+      else { stBadge.textContent = "НОРМА"; stBadge.style.color = "var(--ok)"; }
+      document.getElementById("sectorsTable").innerHTML = list.map(n => `
+        <div class="sec-row ${n.status === 'ТРЕВОГА' ? 'alarm' : ''}">
+          <span><b>${n.name}</b></span><span style="font-family:monospace">${n.temp}°C</span>
+        </div>
+      `).join("");
+    }
+
+    async function pollState() {
+      try {
+        const resp = await fetch("/api/state");
+        const data = await resp.json();
+        if (data.weather) {
+          document.getElementById("weatherDisplay").textContent = `${data.weather.temp}°C | ${data.weather.humidity}% | С-В, ${data.weather.wind_speed} м/с`;
         }
+        if (data.nodes) data.nodes.forEach(updateNode);
+        if (data.events) {
+          const html = data.events.map(e => `<div class="event-item ${e.level === 'ALARM' ? 'alarm' : ''}"><span class="time">[${e.timestamp}]</span>${e.message}</div>`).join("");
+          document.getElementById("operatorEventStream").innerHTML = html;
+        }
+        if (data.incidents && data.incidents.length > 0 && isOperator) {
+          const activeInc = data.incidents.find(i => i.status === "ОЖИДАЕТ");
+          if (activeInc) {
+            currentIncidentId = activeInc.id;
+            document.getElementById("dispatchCard").style.display = "block";
+            document.getElementById("noIncidentText").style.display = "none";
+            document.getElementById("dispatchTarget").textContent = `Локация: ${activeInc.location_name}`;
+            document.getElementById("dispatchTele").textContent = `Телеметрия: ${activeInc.sensor_telemetry}`;
+            document.getElementById("dispatchIO").textContent = `Ответственный: ${activeInc.io_name} (${activeInc.io_phone})`;
+          }
+        }
+      } catch(e) {}
+    }
+    setInterval(pollState, 3000);
+    pollState();
 
-reset_simulation_state()
+    document.querySelectorAll(".tag-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
+        btn.style.borderColor = "var(--primary)";
+        document.getElementById("citLoc").value = btn.textContent;
+      });
+    });
 
-def background_simulation_loop():
-    while True:
-        time.sleep(4)
-        if not active_fires and random.random() < 0.03:
-            criticals = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
-            target = random.choice(criticals)
-            active_fires.add(target)
-            nodes_state[target]["temp"] = 78.5
-            nodes_state[target]["co2"] = 2450
-            nodes_state[target]["status"] = "ТРЕВОГА"
-            msg = f"КРИТИЧЕСКИЙ РОСТ ТЕМПЕРАТУРЫ: {nodes_state[target]['name']} (T: 78°C)"
-            events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
+    document.getElementById("citizenForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await fetch("/api/citizen-report", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ location_name: document.getElementById("citLoc").value, description: document.getElementById("citDesc").value })
+      });
+      alert("Сигнал передан в ЕДДС.");
+      e.target.reset();
+    });
 
-        for node_id, node in nodes_state.items():
-            if node_id not in active_fires:
-                node["temp"] = round(random.uniform(22.0, 25.0), 1)
-                node["battery"] = max(5, node["battery"] - random.choice([0, 0, 0, 1]))
+    document.getElementById("assignBtn").addEventListener("click", async () => {
+      if (!currentIncidentId) return;
+      await fetch("/api/operator/dispatch", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ incident_id: currentIncidentId }) });
+      document.getElementById("dispatchCard").style.display = "none";
+      document.getElementById("noIncidentText").style.display = "block";
+    });
+    document.getElementById("rejectBtn").addEventListener("click", async () => {
+      if (!currentIncidentId) return;
+      await fetch("/api/operator/reject", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ incident_id: currentIncidentId }) });
+      document.getElementById("dispatchCard").style.display = "none";
+      document.getElementById("noIncidentText").style.display = "block";
+    });
 
-threading.Thread(target=background_simulation_loop, daemon=True).start()
+    document.getElementById("syncBtn").addEventListener("click", pollState);
+    document.getElementById("simulateBtn").addEventListener("click", () => fetch("/api/simulate-fire", { method: "POST" }));
+    document.getElementById("resetBtn").addEventListener("click", () => fetch("/api/reset", { method: "POST" }));
 
-class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        parsed_path = urllib.parse.urlparse(self.path)
-        path = parsed_path.path
+    async function loadAiForecast() {
+      try {
+        const resp = await fetch("/api/ai-forecast");
+        const data = await resp.json();
+        document.getElementById("mchsAlertBox").textContent = data.mchs_text;
+        document.getElementById("riskValText").textContent = data.risk_level + "%";
+        const ctx = document.getElementById("aiChart").getContext("2d");
+        if (aiChartInstance) aiChartInstance.destroy();
+        aiChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: { labels: data.hours, datasets: [{ label: 'Риск (%)', data: data.trends, borderColor: '#38bdf8', fill: true }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
+        });
+      } catch(e) {}
+    }
+    document.getElementById("calcAiBtn").addEventListener("click", loadAiForecast);
+    loadAiForecast();
 
-        if path == "/" or path == "":
-            self.path = "/static/index.html"
-            return super().do_GET()
-        
-        elif path == "/api/state":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            data = {
-                "nodes": list(nodes_state.values()),
-                "events": events_list[:40],
-                "incidents": incidents_list,
-                "weather": CURRENT_WEATHER
-            }
-            self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
-            return
+    document.querySelectorAll(".role-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".role-tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(tab.dataset.tab).classList.add("active");
+      });
+    });
 
-        elif path == "/api/ai-forecast":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            
-            temp = CURRENT_WEATHER["temp"]
-            hum = CURRENT_WEATHER["humidity"]
-            wind = CURRENT_WEATHER["wind_speed"]
-            
-            risk = min(98.5, max(15.0, (temp * 1.5) + (wind * 2.3) - (hum * 0.55)))
-            hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
-            trends = [round(min(99.0, max(10.0, risk + random.uniform(-3, 3))), 1) for _ in hours]
-            category = "КРИТИЧЕСКИЙ (IV класс)" if risk > 75 else ("ПОВЫШЕННЫЙ (III класс)" if risk > 45 else "СТАБИЛЬНЫЙ")
-            
-            response_data = {
-                "risk_level": round(risk, 1),
-                "risk_category": category,
-                "mchs_text": f"⚠️ ГУ МЧС по Краснодарскому краю: Действует экстренное предупреждение. ИИ фиксирует риск {round(risk,1)}% из-за норд-оста ({wind} м/с).",
-                "hours": hours,
-                "trends": trends,
-                "model_info": "FWI-ML Python Native Engine v2.4",
-                "factors": {
-                    "wind_impact": min(100, int(wind * 6)),
-                    "dryness_impact": min(100, int((100 - hum) * 1.1)),
-                    "temp_impact": min(100, int(temp * 2.5))
-                }
-            }
-            self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode("utf-8"))
-            return
-
-        elif path == "/api/likes":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            forwarded = self.headers.get("X-Forwarded-For")
-            client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
-            voted = client_ip in voted_ips
-            self.wfile.write(json.dumps({"count": likes_count, "voted": voted}).encode("utf-8"))
-            return
-
-        return super().do_GET()
-
-    def do_POST(self):
-        global likes_count, voted_ips
-        parsed_path = urllib.parse.urlparse(self.path)
-        path = parsed_path.path
-
-        if path == "/api/like":
-            forwarded = self.headers.get("X-Forwarded-For")
-            client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
-            
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            
-            if client_ip in voted_ips:
-                res = {"ok": False, "message": "Вы уже поддержали проект с этого IP-адреса!", "count": likes_count}
-            else:
-                voted_ips.add(client_ip)
-                likes_count += 1
-                save_likes(likes_count, voted_ips)
-                res = {"ok": True, "count": likes_count}
-                
-            self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
-            return
-
-        elif path == "/api/simulate-fire":
-            criticals = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
-            target = random.choice(criticals)
-            active_fires.add(target)
-            nodes_state[target]["temp"] = 82.0
-            nodes_state[target]["co2"] = 2800
-            nodes_state[target]["status"] = "ТРЕВОГА"
-            msg = f"ЭКСТРЕННАЯ СИМУЛЯЦИЯ: Зафиксировано возгорание в секторе '{nodes_state[target]['name']}'"
-            events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
-            
-            inc_id = f"ОБР-{len(incidents_list) + 101}"
-            incidents_list.insert(0, {
-                "id": inc_id,
-                "timestamp": get_msk_time(),
-                "location_name": nodes_state[target]["name"],
-                "nearest_node": nodes_state[target]["name"],
-                "sensor_telemetry": f"T: 82°C | CO2: 2800 ppm",
-                "io_name": nodes_state[target]["io_name"],
-                "io_phone": nodes_state[target]["io_phone"],
-                "status": "ОЖИДАЕТ"
-            })
-
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
-            return
-
-        elif path == "/api/reset":
-            reset_simulation_state()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
-            return
-
-        elif path == "/api/citizen-report":
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            try:
-                data = json.loads(body)
-            except:
-                data = {"location_name": "Неизвестно", "description": "Сигнал"}
-            
-            inc_id = f"ОБР-{len(incidents_list) + 101}"
-            matched = nodes_state.get("УЗЕЛ-01")
-            incidents_list.insert(0, {
-                "id": inc_id,
-                "timestamp": get_msk_time(),
-                "location_name": data.get("location_name", "Склон горы"),
-                "nearest_node": matched["name"],
-                "sensor_telemetry": f"T: {matched['temp']}°C | CO2: {matched['co2']} ppm",
-                "io_name": matched["io_name"],
-                "io_phone": matched["io_phone"],
-                "status": "ОЖИДАЕТ"
-            })
-            events_list.insert(0, {
-                "level": "CITIZEN",
-                "message": f"Сигнал от жителя: {data.get('location_name')} ({data.get('description')}). Проверка телеметрии.",
-                "timestamp": get_msk_time()
-            })
-
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
-            return
-
-        elif path == "/api/operator/dispatch" or path == "/api/operator/reject":
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            try:
-                data = json.loads(body)
-                inc_id = data.get("incident_id")
-                for inc in incidents_list:
-                    if inc["id"] == inc_id:
-                        inc["status"] = "ВЫПОЛНЯЕТСЯ" if "dispatch" in path else "ОТКЛОНЕН (ЛОЖНЫЙ)"
-            except:
-                pass
-
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
-            return
-
-        self.send_response(404)
-        self.end_headers()
-
-if __name__ == "__main__":
-    PORT = 10000
-    with socketserver.TCPServer(("0.0.0.0", PORT), SimpleAPIHandler) as httpd:
-        print(f"Сервер АПК ЭкоСеть запущен на порту {PORT}")
-        httpd.serve_forever()
+    setTimeout(() => {
+      const container = document.getElementById("node3dCanvas");
+      if(!container || typeof THREE === "undefined") return;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(3, 2, 4);
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.autoRotate = true;
+      scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+      const group = new THREE.Group();
+      group.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.8), new THREE.MeshStandardMaterial({color: 0x334155})));
+      scene.add(group);
+      function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+      animate();
+    }, 600);
+  </script>
+</body>
+</html>
