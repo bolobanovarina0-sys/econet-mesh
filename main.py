@@ -14,7 +14,6 @@ def get_msk_time():
 LIKES_FILE = "likes.json"
 
 def load_likes():
-    # Если файла нет, инициализируем с нуля (0 голосов) для демонстрации
     if os.path.exists(LIKES_FILE):
         try:
             with open(LIKES_FILE, "r", encoding="utf-8") as f:
@@ -94,11 +93,11 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        global likes_count, voted_ips
         parsed_path = urllib.parse.urlparse(self.path)
         path = parsed_path.path
 
         if path == "/api/like":
-            global likes_count, voted_ips
             forwarded = self.headers.get("X-Forwarded-For")
             client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
             
@@ -118,8 +117,6 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/reset-likes":
-            # Скрытая техническая команда для обнуления счетчика перед защитой
-            global likes_count, voted_ips
             likes_count = 0
             voted_ips = set()
             save_likes(likes_count, voted_ips)
