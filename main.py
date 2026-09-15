@@ -11,18 +11,18 @@ MSK = timezone(timedelta(hours=3), name="MSK")
 def get_msk_time():
     return datetime.now(MSK).strftime("%H:%M:%S")
 
-# Файл для персистентного сохранения лайков и IP
 LIKES_FILE = "likes.json"
 
 def load_likes():
+    # Если файла нет, инициализируем с нуля (0 голосов) для демонстрации
     if os.path.exists(LIKES_FILE):
         try:
             with open(LIKES_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("count", 184), set(data.get("voted_ips", []))
+                return data.get("count", 0), set(data.get("voted_ips", []))
         except Exception:
             pass
-    return 184, set()
+    return 0, set()
 
 def save_likes(count, voted_ips):
     try:
@@ -61,7 +61,6 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             risk = min(98.5, max(15.0, (temp * 1.5) + (wind * 2.3) - (hum * 0.55)))
             hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
             trends = [round(min(99.0, max(10.0, risk + random.uniform(-3, 3))), 1) for _ in hours]
-            
             category = "КРИТИЧЕСКИЙ (IV класс)" if risk > 75 else ("ПОВЫШЕННЫЙ (III класс)" if risk > 45 else "СТАБИЛЬНЫЙ")
             
             response_data = {
@@ -85,7 +84,6 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
             
-            # Получаем IP с учетом прокси Render (X-Forwarded-For)
             forwarded = self.headers.get("X-Forwarded-For")
             client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
             
@@ -117,6 +115,18 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
                 res = {"ok": True, "count": likes_count}
                 
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
+            return
+
+        elif path == "/api/reset-likes":
+            # Скрытая техническая команда для обнуления счетчика перед защитой
+            global likes_count, voted_ips
+            likes_count = 0
+            voted_ips = set()
+            save_likes(likes_count, voted_ips)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": True, "count": 0}).encode("utf-8"))
             return
 
         elif path == "/api/citizen-report" or path == "/api/simulate-fire" or path == "/api/reset":
