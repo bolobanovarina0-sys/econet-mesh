@@ -123,7 +123,12 @@ async def get_ai_forecast():
         "mchs_text": mchs_text,
         "hours": ai_res["hours"],
         "trends": ai_res["trends"],
-        "model_info": ai_res["model_info"]
+        "model_info": ai_res["model_info"],
+        "factors": {
+            "wind_impact": min(100, int(current_weather["wind_speed"] * 6)),
+            "dryness_impact": min(100, int((100 - current_weather["humidity"]) * 1.1)),
+            "temp_impact": min(100, int(current_weather["temp"] * 2.5))
+        }
     }
 
 @app.get("/api/likes")
