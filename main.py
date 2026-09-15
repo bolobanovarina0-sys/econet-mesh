@@ -116,10 +116,11 @@ async def get_ai_forecast():
         humidity=current_weather["humidity"],
         wind_speed=current_weather["wind_speed"]
     )
-    mchs_warning = f"⚠️ ГУ МЧС по Краснодарскому краю: В МО г. Новороссийск действует экстренное предупреждение. Модель ИИ [{ai_res['model_info']}] фиксирует повышенный риск из-за норд-оста ({current_weather['wind_speed']} м/с)."
+    mchs_text = f"⚠️ ГУ МЧС по Краснодарскому краю: В МО г. Новороссийск действует экстренное предупреждение. ИИ-модель [{ai_res['model_info']}] оценивает класс пожарной опасности как {ai_res['risk_category']}. {ai_res['recommendation']}"
     return {
         "risk_level": ai_res["risk_level"],
-        "mchs_text": mchs_warning,
+        "risk_category": ai_res["risk_category"],
+        "mchs_text": mchs_text,
         "hours": ai_res["hours"],
         "trends": ai_res["trends"],
         "model_info": ai_res["model_info"]
@@ -135,7 +136,7 @@ async def get_likes(request: Request):
 async def post_like(request: Request):
     client_ip = request.client.host
     if client_ip in likes_db["voted_ips"]:
-        return {"ok": False, "message": "Вы уже поддержали проект с этого IP!", "count": likes_db["count"]}
+        return {"ok": False, "message": "Вы уже поддержали проект с этого IP-адреса!", "count": likes_db["count"]}
     likes_db["voted_ips"].add(client_ip)
     likes_db["count"] += 1
     return {"ok": True, "count": likes_db["count"]}
@@ -293,86 +294,17 @@ async def reset_simulation():
     await manager.broadcast({"type": "init", "nodes": list(nodes.values()), "events": [], "incidents": incidents, "weather": current_weather})
     return {"ok": True}
 
-@app.get("/api/export-pdf/{incident_id}")
-async def export_incident_pdf(incident_id: str):
-    target = next((inc for inc in incidents if inc["id"] == incident_id), None)
-    if not target:
-        target = incidents[0] if incidents else {
-            "id": "ОБР-101",
-            "timestamp": get_msk_time(),
-            "location_name": "Полигон ТКО г. Щелба",
-            "nearest_node": "Полигон ТКО г. Щелба",
-            "sensor_telemetry": "T: 75°C | CO2: 2350 ppm",
-            "io_name": "Иванов А.В.",
-            "io_phone": "+7 (928) 111-22-33"
-        }
-
-    pdf_content = f"""
-    КУРСОВАЯ / ПРОЕКТНАЯ СВОДКА ЕДДС-112
-    АПК «ЭкоСеть» — МО город Новороссийск
-    --------------------------------------------------
-    ОФИЦИАЛЬНЫЙ АКТ РЕАГИРОВАНИЯ НА ИНЦИДЕНТ № {target['id']}
-    Время фиксации: {target['timestamp']} МСК
-    
-    1. ДАННЫЕ ОБЪЕКТА И ЛОКАЦИИ:
-       - Наименование: {target['location_name']}
-       - Ближайший датчик LoRa-mesh: {target['nearest_node']}
-       - Телеметрия узла: {target['sensor_telemetry']}
-       - Роза ветров (Маркотх): Северо-Восточный (Норд-ост), {current_weather['wind_speed']} м/с
-    
-    2. ОПЕРАТИВНЫЙ СТАТУС:
-       - Статус реагирования: {target['status']}
-       - Ответственный дежурный инспектор (ИО): {target['io_name']} ({target['io_phone']})
-    
-    3. ЗАКЛЮЧЕНИЕ СИТУАЦИОННОГО ЦЕНТРА:
-       Параметры подтверждены автоматическим комплексом раннего обнаружения. 
-       Наряд задействован согласно регламенту межведомственного взаимодействия.
-       
-    --------------------------------------------------
-    Документ сформирован автоматически в системе АПК «ЭкоСеть».
-    Электронная подпись оператора ЕДДС действительна.
-    """
-    return Response(
-        content=pdf_content.encode("utf-8"),
-        media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename=Akt_KCHS_{target['id']}.txt"}
-    )
-
 @app.get("/api/export")
 async def export_excel():
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Сводка ЕДДС Новороссийск"
-    
     ws.append(["ID", "Сектор / Объект", "Категория", "Статус", "T (°C)", "CO2 (ppm)", "Влажность", "Заряд"])
     for cell in ws[1]:
         cell.font = openpyxl.styles.Font(bold=True)
-    
     for s in nodes.values():
-        ws.append([
-            s["node_id"],
-            s["name"],
-            "Объект риска" if s["is_critical"] else "Лесной массив",
-            s["status"],
-            s["temp"],
-            s["co2"],
-            f"{s['humidity']}%",
-            f"{s['battery']}%"
-        ])
-
-    ws_inc = wb.create_sheet(title="Журнал выездов расчетов")
-    ws_inc.append(["№ Вызова", "Время", "Локация", "Статус"])
-    for cell in ws_inc[1]:
-        cell.font = openpyxl.styles.Font(bold=True)
-
-    for inc in incidents:
-        ws_inc.append([
-            inc["id"],
-            inc["timestamp"],
-            inc["location_name"],
-            inc["status"]
-        ])
-
+        ws.append([s["node_id"], s["name"], "Объект риска" if s["is_critical"] else "Лесной массив", s["status"], s["temp"], s["co2"], f"{s['humidity']}%", f"{s['battery']}%"])
+    
     file_path = "mchs_summary.xlsx"
     wb.save(file_path)
     return FileResponse(file_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=f"EcoNet_EDDS_{datetime.now().strftime('%d_%m_%Y')}.xlsx")
@@ -387,14 +319,11 @@ async def background_loop():
     while True:
         await asyncio.sleep(4)
         weather_timer += 4
-        
         if weather_timer >= 300:
             await update_weather()
             weather_timer = 0
-
         if not active_fires and random.random() < 0.02:
             await simulate_fire()
-
         for node_id, node in list(nodes.items()):
             if node_id not in active_fires:
                 node["temp"] = round(random.uniform(22.0, 25.0), 1)
