@@ -4,6 +4,8 @@ import json
 import random
 import urllib.parse
 import os
+import threading
+import time
 from datetime import datetime, timezone, timedelta
 
 MSK = timezone(timedelta(hours=3), name="MSK")
@@ -32,12 +34,77 @@ def save_likes(count, voted_ips):
 
 likes_count, voted_ips = load_likes()
 
-current_weather = {
+CURRENT_WEATHER = {
     "temp": 26.5,
     "humidity": 42.0,
     "wind_speed": 14.0,
     "wind_direction": 45.0,
 }
+
+FOREST_SECTORS = [
+    {"id": "УЗЕЛ-01", "name": "Полигон г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
+    {"id": "УЗЕЛ-02", "name": "Сухая Щель", "lat": 44.6780, "lng": 37.6040, "is_critical": True, "io_name": "Петров С.Н.", "io_phone": "+7 (928) 222-33-44"},
+    {"id": "УЗЕЛ-03", "name": "Карьер Пролетарий", "lat": 44.7340, "lng": 37.8180, "is_critical": True, "io_name": "Смирнов Д.И.", "io_phone": "+7 (928) 333-44-55"},
+    {"id": "УЗЕЛ-04", "name": "Волчьи Ворота", "lat": 44.8052, "lng": 37.7341, "is_critical": True, "io_name": "Кузнецов В.П.", "io_phone": "+7 (928) 444-55-66"},
+    {"id": "УЗЕЛ-05", "name": "Семь Ветров", "lat": 44.7380, "lng": 37.8480, "is_critical": True, "io_name": "Соколов И.А.", "io_phone": "+7 (928) 555-66-77"},
+    {"id": "УЗЕЛ-06", "name": "Маркотх Север", "lat": 44.7720, "lng": 37.8210, "is_critical": False, "io_name": "Попов Алексей", "io_phone": "+7 (918) 123-00-11"},
+    {"id": "УЗЕЛ-07", "name": "Гайдук (База)", "lat": 44.7780, "lng": 37.7120, "is_critical": False, "io_name": "Волков М.Д.", "io_phone": "+7 (918) 123-00-22"},
+    {"id": "УЗЕЛ-08", "name": "Кирилловка", "lat": 44.7540, "lng": 37.7410, "is_critical": False, "io_name": "Лебедев К.С.", "io_phone": "+7 (918) 123-00-33"},
+    {"id": "УЗЕЛ-09", "name": "Васильевка", "lat": 44.7390, "lng": 37.6680, "is_critical": False, "io_name": "Новиков А.А.", "io_phone": "+7 (918) 123-00-44"},
+    {"id": "УЗЕЛ-10", "name": "Глебовское", "lat": 44.7210, "lng": 37.6520, "is_critical": False, "io_name": "Морозов П.И.", "io_phone": "+7 (918) 123-00-55"},
+]
+
+nodes_state = {}
+events_list = []
+incidents_list = []
+active_fires = set()
+
+def reset_simulation_state():
+    active_fires.clear()
+    events_list.clear()
+    incidents_list.clear()
+    events_list.append({
+        "level": "INFO",
+        "message": "Система АПК «ЭкоСеть» инициализирована. Опрос LoRa-периметра активен.",
+        "timestamp": get_msk_time()
+    })
+    for s in FOREST_SECTORS:
+        nodes_state[s["id"]] = {
+            "node_id": s["id"],
+            "name": s["name"],
+            "lat": s["lat"],
+            "lng": s["lng"],
+            "is_critical": s["is_critical"],
+            "temp": round(random.uniform(22.0, 25.0), 1),
+            "humidity": round(random.uniform(40.0, 50.0), 1),
+            "co2": random.randint(380, 420),
+            "battery": random.randint(85, 100),
+            "status": "НОРМА",
+            "io_name": s["io_name"],
+            "io_phone": s["io_phone"]
+        }
+
+reset_simulation_state()
+
+def background_simulation_loop():
+    while True:
+        time.sleep(4)
+        if not active_fires and random.random() < 0.03:
+            criticals = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
+            target = random.choice(criticals)
+            active_fires.add(target)
+            nodes_state[target]["temp"] = 78.5
+            nodes_state[target]["co2"] = 2450
+            nodes_state[target]["status"] = "ТРЕВОГА"
+            msg = f"КРИТИЧЕСКИЙ РОСТ ТЕМПЕРАТУРЫ: {nodes_state[target]['name']} (T: 78°C)"
+            events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
+
+        for node_id, node in nodes_state.items():
+            if node_id not in active_fires:
+                node["temp"] = round(random.uniform(22.0, 25.0), 1)
+                node["battery"] = max(5, node["battery"] - random.choice([0, 0, 0, 1]))
+
+threading.Thread(target=background_simulation_loop, daemon=True).start()
 
 class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -48,14 +115,27 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.path = "/static/index.html"
             return super().do_GET()
         
+        elif path == "/api/state":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            data = {
+                "nodes": list(nodes_state.values()),
+                "events": events_list[:40],
+                "incidents": incidents_list,
+                "weather": CURRENT_WEATHER
+            }
+            self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
+            return
+
         elif path == "/api/ai-forecast":
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
             
-            temp = current_weather["temp"]
-            hum = current_weather["humidity"]
-            wind = current_weather["wind_speed"]
+            temp = CURRENT_WEATHER["temp"]
+            hum = CURRENT_WEATHER["humidity"]
+            wind = CURRENT_WEATHER["wind_speed"]
             
             risk = min(98.5, max(15.0, (temp * 1.5) + (wind * 2.3) - (hum * 0.55)))
             hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
@@ -82,10 +162,8 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            
             forwarded = self.headers.get("X-Forwarded-For")
             client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
-            
             voted = client_ip in voted_ips
             self.wfile.write(json.dumps({"count": likes_count, "voted": voted}).encode("utf-8"))
             return
@@ -116,17 +194,86 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
             return
 
-        elif path == "/api/reset-likes":
-            likes_count = 0
-            voted_ips = set()
-            save_likes(likes_count, voted_ips)
+        elif path == "/api/simulate-fire":
+            criticals = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
+            target = random.choice(criticals)
+            active_fires.add(target)
+            nodes_state[target]["temp"] = 82.0
+            nodes_state[target]["co2"] = 2800
+            nodes_state[target]["status"] = "ТРЕВОГА"
+            msg = f"ЭКСТРЕННАЯ СИМУЛЯЦИЯ: Зафиксировано возгорание в секторе '{nodes_state[target]['name']}'"
+            events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
+            
+            inc_id = f"ОБР-{len(incidents_list) + 101}"
+            incidents_list.insert(0, {
+                "id": inc_id,
+                "timestamp": get_msk_time(),
+                "location_name": nodes_state[target]["name"],
+                "nearest_node": nodes_state[target]["name"],
+                "sensor_telemetry": f"T: 82°C | CO2: 2800 ppm",
+                "io_name": nodes_state[target]["io_name"],
+                "io_phone": nodes_state[target]["io_phone"],
+                "status": "ОЖИДАЕТ"
+            })
+
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            self.wfile.write(json.dumps({"ok": True, "count": 0}).encode("utf-8"))
+            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
             return
 
-        elif path == "/api/citizen-report" or path == "/api/simulate-fire" or path == "/api/reset":
+        elif path == "/api/reset":
+            reset_simulation_state()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
+            return
+
+        elif path == "/api/citizen-report":
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body)
+            except:
+                data = {"location_name": "Неизвестно", "description": "Сигнал"}
+            
+            inc_id = f"ОБР-{len(incidents_list) + 101}"
+            matched = nodes_state.get("УЗЕЛ-01")
+            incidents_list.insert(0, {
+                "id": inc_id,
+                "timestamp": get_msk_time(),
+                "location_name": data.get("location_name", "Склон горы"),
+                "nearest_node": matched["name"],
+                "sensor_telemetry": f"T: {matched['temp']}°C | CO2: {matched['co2']} ppm",
+                "io_name": matched["io_name"],
+                "io_phone": matched["io_phone"],
+                "status": "ОЖИДАЕТ"
+            })
+            events_list.insert(0, {
+                "level": "CITIZEN",
+                "message": f"Сигнал от жителя: {data.get('location_name')} ({data.get('description')}). Проверка телеметрии.",
+                "timestamp": get_msk_time()
+            })
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
+            return
+
+        elif path == "/api/operator/dispatch" or path == "/api/operator/reject":
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body)
+                inc_id = data.get("incident_id")
+                for inc in incidents_list:
+                    if inc["id"] == inc_id:
+                        inc["status"] = "ВЫПОЛНЯЕТСЯ" if "dispatch" in path else "ОТКЛОНЕН (ЛОЖНЫЙ)"
+            except:
+                pass
+
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
