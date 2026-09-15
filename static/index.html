@@ -754,52 +754,6 @@
       currentIncidentId = null;
     });
 
-    document.getElementById("pdfAktBtn").addEventListener("click", () => {
-      const targetLoc = document.getElementById("dispatchTarget").innerText || "Объект мониторинга: г. Новороссийск";
-      const targetTele = document.getElementById("dispatchTele").innerText || "Телеметрия в норме";
-      const targetIO = document.getElementById("dispatchIO").innerText || "Ответственный ИО: ЕДДС";
-      const currentTime = new Date().toLocaleTimeString("ru-RU", {timeZone: "Europe/Moscow"});
-
-      const actText = `
-==================================================
-        КУРСОВАЯ / ПРОЕКТНАЯ СВОДКА ЕДДС-112
-    АПК «ЭкоСеть» — МО город Новороссийск
-==================================================
-ОФИЦИАЛЬНЫЙ АКТ РЕАГИРОВАНИЯ НА ИНЦИДЕНТ
-Время формирования: ${currentTime} МСК
-
-1. ДАННЫЕ ОБЪЕКТА И ЛОКАЦИИ:
-   - ${targetLoc}
-   - Метеоусловия (Маркотх): Северо-Восточный (Норд-ост), ${weatherWindSpeed} м/с
-   - ${targetTele}
-
-2. ОПЕРАТИВНЫЙ СТАТУС:
-   - Статус: ТРЕВОГА / ТРЕБУЕТСЯ РЕАГИРОВАНИЕ
-   - ${targetIO}
-
-3. ЗАКЛЮЧЕНИЕ СИТУАЦИОННОГО ЦЕНТРА:
-   Параметры подтверждены автоматическим комплексом раннего обнаружения. 
-   Наряд задействован согласно регламенту межведомственного взаимодействия.
-   
---------------------------------------------------
-Документ сформирован автоматически в системе АПК «ЭкоСеть».
-Электронная подпись оператора ЕДДС действительна.
-      `.trim();
-
-      const blob = new Blob([actText], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Akt_KCHS_${Date.now()}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-
-    document.getElementById("syncBtn").addEventListener("click", () => { window.location.reload(); });
-    document.getElementById("simulateBtn").addEventListener("click", () => fetch("/api/simulate-fire", { method: "POST" }));
-    document.getElementById("resetBtn").addEventListener("click", () => fetch("/api/reset", { method: "POST" }));
     document.getElementById("exportExcelBtn").addEventListener("click", () => window.open("/api/export", "_blank"));
 
     document.querySelectorAll(".role-tab").forEach(tab => {
