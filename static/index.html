@@ -23,41 +23,72 @@
       --font-mono: "SF Mono", Consolas, monospace;
     }
 
+    /* СВЕТЛАЯ ТЕМА */
+    body.light-theme {
+      --bg-main: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --border-color: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --danger-bg: rgba(239, 68, 68, 0.08);
+    }
+
+    /* ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ (Высокая контрастность по ГОСТу) */
+    body.accessibility-theme {
+      --bg-main: #000000;
+      --bg-surface: #000000;
+      --bg-card: #000000;
+      --border-color: #ffffff;
+      --text-main: #ffff00; /* Желтый по черному */
+      --text-muted: #ffffff;
+      --primary: #00ffff;
+      --primary-hover: #ffffff;
+      --danger: #ff0000;
+      --danger-bg: rgba(255, 0, 0, 0.2);
+      --ok: #00ff00;
+      font-size: 16px !important;
+    }
+    body.accessibility-theme * {
+      border-color: #ffffff !important;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
-    html, body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 13px; line-height: 1.45; }
+    html, body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 13px; line-height: 1.45; transition: background 0.2s, color 0.2s; }
 
     .sys-header { background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; z-index: 1001; }
     .sys-brand { display: flex; align-items: center; gap: 10px; }
     .status-pulse { width: 9px; height: 9px; background: var(--ok); border-radius: 50%; box-shadow: 0 0 6px var(--ok); }
-    .sys-title { font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
-    .sys-tag { font-size: 10px; background: #0f172a; color: var(--primary); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); }
+    .sys-title { font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    .sys-tag { font-size: 10px; background: var(--bg-card); color: var(--primary); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); }
     .sys-sub { font-size: 11px; color: var(--text-muted); }
 
     .sys-metrics { display: flex; gap: 8px; flex-wrap: wrap; }
-    .metric-box { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px 10px; font-size: 11px; display: flex; gap: 6px; align-items: center; }
+    .metric-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px 10px; font-size: 11px; display: flex; gap: 6px; align-items: center; }
     .metric-lbl { color: var(--text-muted); }
-    .metric-val { font-weight: 600; color: #fff; font-family: var(--font-mono); }
-    .danger-text { color: #f87171 !important; }
+    .metric-val { font-weight: 600; color: var(--text-main); font-family: var(--font-mono); }
+    .danger-text { color: var(--danger) !important; }
 
     .map-section { position: relative; height: 38vh; min-height: 250px; border-bottom: 1px solid var(--border-color); z-index: 1; }
     #map { width: 100%; height: 100%; background: #0b0f17; }
-    .map-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; background: rgba(18, 24, 36, 0.85); backdrop-filter: blur(4px); padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .map-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; background: var(--bg-surface); padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); }
     .hidden { display: none !important; }
 
-    .ctrl-btn { padding: 7px 12px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; border: none; transition: background 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-    .ctrl-btn--danger { background: var(--danger); color: #fff; }
-    .ctrl-btn--danger:hover { background: #dc2626; }
-    .ctrl-btn--warning { background: #d97706; color: #fff; }
-    .ctrl-btn--warning:hover { background: #b45309; }
-    .ctrl-btn--secondary { background: #334155; color: #fff; border: 1px solid #475569; }
-    .ctrl-btn--secondary:hover { background: #475569; }
-    .ctrl-btn--primary { background: var(--primary); color: #0f172a; width: 100%; padding: 10px; font-weight: 700; }
-    .ctrl-btn--primary:hover { background: var(--primary-hover); }
+    .ctrl-btn { padding: 7px 12px; font-size: 12px; font-weight: 600; border-radius: 5px; cursor: pointer; border: 1px solid var(--border-color); transition: background 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .ctrl-btn--danger { background: var(--danger); color: #fff; border: none; }
+    .ctrl-btn--danger:hover { opacity: 0.9; }
+    .ctrl-btn--warning { background: #d97706; color: #fff; border: none; }
+    .ctrl-btn--secondary { background: var(--bg-card); color: var(--text-main); }
+    .ctrl-btn--secondary:hover { border-color: var(--primary); }
+    .ctrl-btn--primary { background: var(--primary); color: #0f172a; width: 100%; padding: 10px; font-weight: 700; border: none; }
+    .ctrl-btn--primary:hover { opacity: 0.9; }
 
     .workspace { background: var(--bg-main); display: flex; flex-direction: column; flex: 1; padding-bottom: 20px; }
     .role-nav { display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 0 20px; overflow-x: auto; }
     .role-tab { background: none; border: none; color: var(--text-muted); padding: 11px 16px; font-size: 12px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-    .role-tab:hover { color: #fff; }
+    .role-tab:hover { color: var(--text-main); }
     .role-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
     .tab-view { display: none !important; padding: 16px 20px; }
@@ -66,69 +97,69 @@
     .gov-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .gov-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 
-    .gov-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); margin-bottom: 16px; }
-    .gov-card__header { padding: 10px 14px; background: rgba(0, 0, 0, 0.15); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-    .gov-card__header h3 { font-size: 12px; font-weight: 700; color: #fff; }
-    .gov-pill { font-size: 10px; font-weight: 600; background: #0f172a; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); text-transform: uppercase; }
-    .gov-pill.ok-pill { color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
+    .gov-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 16px; }
+    .gov-card__header { padding: 10px 14px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .gov-card__header h3 { font-size: 12px; font-weight: 700; color: var(--text-main); }
+    .gov-pill { font-size: 10px; font-weight: 600; background: var(--bg-main); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); text-transform: uppercase; }
+    .gov-pill.ok-pill { color: var(--ok); border-color: var(--ok); }
     .gov-card__body { padding: 14px; font-size: 12px; }
 
-    .section-intro { color: var(--text-muted); margin-bottom: 12px; line-height: 1.45; font-size: 11px; background: rgba(15, 23, 42, 0.4); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); }
-    .legal-notice { font-size: 11px; line-height: 1.4; color: #cbd5e1; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 8px 10px; border-radius: 5px; margin-top: 8px; margin-bottom: 10px; }
+    .section-intro { color: var(--text-muted); margin-bottom: 12px; line-height: 1.45; font-size: 11px; background: var(--bg-main); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); }
+    .legal-notice { font-size: 11px; line-height: 1.4; color: var(--text-main); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 8px 10px; border-radius: 5px; margin-top: 8px; margin-bottom: 10px; }
 
     .gov-form { display: flex; flex-direction: column; gap: 10px; }
     .form-row { display: flex; flex-direction: column; gap: 5px; }
     .form-row label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
 
     .fast-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
-    .tag-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; transition: 0.15s; }
-    .tag-btn:hover { border-color: var(--primary); color: #fff; }
+    .tag-btn { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+    .tag-btn:hover { border-color: var(--primary); }
 
-    .gov-form input, .gov-form textarea, .gov-select { background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; padding: 8px 10px; border-radius: 5px; font-family: inherit; font-size: 12px; width: 100%; }
+    .gov-form input, .gov-form textarea, .gov-select { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 10px; border-radius: 5px; font-family: inherit; font-size: 12px; width: 100%; }
     .gov-form input:focus, .gov-form textarea:focus, .gov-select:focus { outline: none; border-color: var(--primary); }
 
     .emergency-phones { display: flex; flex-direction: column; gap: 6px; }
-    .phone-card { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 5px; padding: 8px 12px; text-decoration: none; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); font-size: 12px; transition: border-color 0.15s; }
+    .phone-card { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 5px; padding: 8px 12px; text-decoration: none; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); font-size: 12px; }
     .phone-card:hover { border-color: var(--primary); }
     .phone-card span { font-weight: 700; color: var(--primary); font-family: var(--font-mono); }
 
     .event-feed { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-    .event-item { background: var(--bg-main); border-left: 3px solid var(--primary); padding: 6px 8px; border-radius: 4px; font-size: 11px; }
-    .event-item.alarm { border-left-color: var(--danger); background: var(--danger-bg); color: #fca5a5; }
+    .event-item { background: var(--bg-main); border-left: 3px solid var(--primary); padding: 6px 8px; border-radius: 4px; font-size: 11px; color: var(--text-main); }
+    .event-item.alarm { border-left-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
     .time { color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); margin-right: 6px; }
 
-    .dispatch-alert { background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 5px; padding: 10px; margin-bottom: 12px; }
-    .dispatch-alert__title { font-size: 11px; font-weight: 800; color: #f87171; margin-bottom: 4px; }
-    .dispatch-alert__desc { font-size: 12px; color: #fff; font-weight: 600; margin-bottom: 2px; }
-    .dispatch-alert__sub { font-size: 11px; color: #cbd5e1; margin-bottom: 6px; }
+    .dispatch-alert { background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 5px; padding: 10px; margin-bottom: 12px; }
+    .dispatch-alert__title { font-size: 11px; font-weight: 800; color: var(--danger); margin-bottom: 4px; }
+    .dispatch-alert__desc { font-size: 12px; color: var(--text-main); font-weight: 600; margin-bottom: 2px; }
+    .dispatch-alert__sub { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
 
     .sectors-table { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .sec-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 6px 10px; border-radius: 4px; font-size: 11px; }
-    .sec-row.alarm { background: var(--danger-bg); border-left: 3px solid var(--danger); color: #fca5a5; }
+    .sec-row.alarm { background: var(--danger-bg); border-left: 3px solid var(--danger); color: var(--danger); }
 
-    .mission-banner { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 16px 20px; margin-top: 16px; display: flex; gap: 16px; align-items: flex-start; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
-    .mission-banner__icon { font-size: 24px; background: rgba(56, 189, 248, 0.1); padding: 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); }
-    .mission-banner__content h4 { font-size: 13px; color: #fff; margin-bottom: 6px; font-weight: 700; }
+    .mission-banner { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 16px 20px; margin-top: 16px; display: flex; gap: 16px; align-items: flex-start; }
+    .mission-banner__icon { font-size: 24px; background: var(--bg-surface); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .mission-banner__content h4 { font-size: 13px; color: var(--text-main); margin-bottom: 6px; font-weight: 700; }
     .mission-banner__content p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
     .mission-banner__content b { color: var(--primary); }
 
-    .floating-like { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 30px; padding: 10px 18px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); cursor: pointer; transition: 0.2s; }
+    .floating-like { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 30px; padding: 10px 18px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s; }
     .floating-like:hover { border-color: var(--primary); transform: translateY(-2px); }
     .floating-like__icon { font-size: 18px; color: #ef4444; }
-    .floating-like__count { font-weight: 700; font-family: var(--font-mono); color: #fff; }
+    .floating-like__count { font-weight: 700; font-family: var(--font-mono); color: var(--text-main); }
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
     .modal-overlay.open { opacity: 1; pointer-events: auto; }
     .modal-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 24px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-    .modal-box h3 { font-size: 14px; margin-bottom: 8px; color: #fff; font-weight: 700; }
+    .modal-box h3 { font-size: 14px; margin-bottom: 8px; color: var(--text-main); font-weight: 700; }
     .modal-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4; }
 
-    .gov-footer { background: #0d121c; border-top: 1px solid var(--border-color); padding: 24px 20px; margin-top: 40px; }
+    .gov-footer { background: var(--bg-surface); border-top: 1px solid var(--border-color); padding: 24px 20px; margin-top: 40px; }
     .gov-footer__container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 24px; }
-    .gov-footer__title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .gov-footer__title { font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
     .gov-footer__text { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
     .gov-footer__links { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-    .gov-footer__links a { font-size: 11px; color: var(--text-muted); text-decoration: none; transition: color 0.15s; }
+    .gov-footer__links a { font-size: 11px; color: var(--text-muted); text-decoration: none; }
     .gov-footer__links a:hover { color: var(--primary); text-decoration: underline; }
     .demo-badge { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fde047; padding: 6px 10px; border-radius: 4px; font-size: 10px; margin-top: 10px; line-height: 1.4; }
 
@@ -172,9 +203,11 @@
       </div>
     </div>
 
-    <div style="display: flex; gap: 8px; align-items: center;">
+    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+      <button id="themeToggleBtn" class="ctrl-btn ctrl-btn--secondary" title="Переключить светлую / темную тему">☀️ Тема</button>
+      <button id="accessibilityToggleBtn" class="ctrl-btn ctrl-btn--secondary" title="Версия для слабовидящих">👁️ Слабовидящим</button>
       <button id="soundToggleBtn" class="ctrl-btn ctrl-btn--secondary" title="Включить / отключить звук сирены">🔊 Звук: ВКЛ</button>
-      <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход для сотрудников</button>
+      <button id="loginBtn" class="ctrl-btn ctrl-btn--secondary">🔒 Вход</button>
     </div>
   </header>
 
@@ -244,11 +277,11 @@
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 11px; color: var(--text-muted);">Индекс риска (ИИ): <b id="riskValText" style="color:#fff;">--%</b></span>
+              <span style="font-size: 11px; color: var(--text-muted);">Индекс риска (ИИ): <b id="riskValText" style="color:var(--text-main);">--%</b></span>
               <button id="calcAiBtn" class="ctrl-btn ctrl-btn--secondary" style="font-size: 10px; padding: 4px 8px;" title="Доступно раз в 6 часов">🔄 Рассчитать прогноз</button>
             </div>
 
-            <div style="height: 140px; margin-bottom: 10px; background: rgba(15, 23, 42, 0.5); padding: 6px; border-radius: 4px;">
+            <div style="height: 140px; margin-bottom: 10px; background: var(--bg-main); padding: 6px; border-radius: 4px; border: 1px solid var(--border-color);">
               <canvas id="aiChart"></canvas>
             </div>
 
@@ -302,7 +335,7 @@
             <span class="gov-pill">Three.js</span>
           </div>
           <div class="gov-card__body">
-            <div id="node3dCanvas" style="height:220px; background:#121824; border-radius:4px;"></div>
+            <div id="node3dCanvas" style="height:220px; background:var(--bg-main); border-radius:4px; border:1px solid var(--border-color);"></div>
           </div>
         </div>
         <div class="gov-card">
@@ -314,7 +347,7 @@
             <div><b>Микроконтроллер:</b> ESP32-S3 (Dual-Core 240MHz)</div>
             <div><b>Связь:</b> LoRa SX1262 (868 МГц, Mesh-ретрансляция до 10 км без GSM)</div>
             <div><b>Сенсоры:</b> Bosch BME280 + газоанализатор CCS811 (раннее детектирование CO на стадии тления)</div>
-            <div style="background: rgba(34, 197, 94, 0.1); border-left: 3px solid var(--ok); padding: 8px; border-radius: 4px; color: #4ade80; margin-top: 4px;">
+            <div style="background: rgba(34, 197, 94, 0.1); border-left: 3px solid var(--ok); padding: 8px; border-radius: 4px; color: var(--ok); margin-top: 4px;">
               💡 <b>Предотвращение издержек:</b> Автономная ячеистая сеть исключает миллионные убытки за счет реагирования в первые 5 минут.
             </div>
           </div>
@@ -335,7 +368,7 @@
               <div class="dispatch-alert__title">⚠️ ТРЕБУЕТСЯ ВМЕШАТЕЛЬСТВО ОПЕРАТОРА</div>
               <div id="dispatchTarget" class="dispatch-alert__desc">Локация: ...</div>
               <div id="dispatchTele" class="dispatch-alert__sub">Телеметрия: ...</div>
-              <div class="io-box" id="dispatchIO" style="margin: 8px 0; padding:6px; background:#fffbeb; border:1px solid #fcd34d; font-size:11px; border-radius:4px; color:#b45309;">
+              <div class="io-box" id="dispatchIO" style="margin: 8px 0; padding:6px; background:var(--bg-main); border:1px solid var(--border-color); font-size:11px; border-radius:4px; color:var(--text-main);">
                 Ответственный ИО: ...
               </div>
               <label style="font-size:11px; color:var(--text-muted);">Назначить дежурный расчет:</label>
@@ -347,7 +380,6 @@
               <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
                 <button id="assignBtn" class="ctrl-btn ctrl-btn--danger" style="flex: 1;">Подтвердить выезд</button>
                 <button id="rejectBtn" class="ctrl-btn ctrl-btn--warning" style="flex: 1;" title="Отклонить как ложный вызов">❌ Отклонить</button>
-                <button id="pdfAktBtn" class="ctrl-btn ctrl-btn--secondary" style="width: 100%;" title="Скачать акт КЧС">📄 Скачать акт (PDF)</button>
               </div>
             </div>
 
@@ -359,17 +391,12 @@
               <label><input type="checkbox" checked disabled> Опрос LoRa-периметра (868 МГц)</label>
               <label><input type="checkbox" checked disabled> Мониторинг розы ветров Маркотха</label>
             </div>
-
-            <button id="exportExcelBtn" class="ctrl-btn ctrl-btn--secondary" style="margin-top:14px; width:100%;">
-              📊 Выгрузить сводку ЕДДС (Excel)
-            </button>
           </div>
         </div>
 
         <div class="gov-card">
           <div class="gov-card__header">
             <h3>Оперативный журнал событий</h3>
-            <span class="live-dot"></span>
           </div>
           <div class="gov-card__body">
             <div id="operatorEventStream" class="event-feed" style="height: 220px;"></div>
@@ -409,7 +436,7 @@
   <!-- Плавающий виджет лайка в правом нижнем углу -->
   <div id="floatingLikeBtn" class="floating-like" title="Поддержать проект лайком">
     <span class="floating-like__icon">❤️</span>
-    <span style="font-size:12px; font-weight:600; color:#fff;">Оценить</span>
+    <span style="font-size:12px; font-weight:600; color:var(--text-main);">Оценить</span>
     <span id="floatingLikeCount" class="floating-like__count">184</span>
   </div>
 
@@ -466,6 +493,39 @@
     let isOperator = false;
     let soundEnabled = true;
     let aiChartInstance = null;
+
+    // Управление темами (Светлая / Темная / Слабовидящие)
+    const themeBtn = document.getElementById("themeToggleBtn");
+    const accessibilityBtn = document.getElementById("accessibilityToggleBtn");
+
+    function setTheme(mode) {
+      document.body.classList.remove("light-theme", "accessibility-theme");
+      if (mode === "light") {
+        document.body.classList.add("light-theme");
+        themeBtn.textContent = "🌙 Тема";
+      } else if (mode === "accessibility") {
+        document.body.classList.add("accessibility-theme");
+        themeBtn.textContent = "☀️ Тема";
+      } else {
+        themeBtn.textContent = "☀️ Тема";
+      }
+      localStorage.setItem("app_theme", mode);
+    }
+
+    const savedTheme = localStorage.getItem("app_theme") || "dark";
+    setTheme(savedTheme);
+
+    themeBtn.addEventListener("click", () => {
+      const current = localStorage.getItem("app_theme");
+      if (current === "light") setTheme("dark");
+      else setTheme("light");
+    });
+
+    accessibilityBtn.addEventListener("click", () => {
+      const current = localStorage.getItem("app_theme");
+      if (current === "accessibility") setTheme("dark");
+      else setTheme("accessibility");
+    });
 
     function playAlarmBeep() {
       if (!soundEnabled) return;
@@ -536,7 +596,6 @@
         document.getElementById("operatorTabBtn").classList.remove("hidden");
         document.getElementById("operatorTabBtn").click();
         alert("Доступ разрешен. Пульт дежурного синхронизирован.");
-        updateTable();
       } else if (pwd !== null) {
         alert("Неверный пароль!");
       }
@@ -608,194 +667,7 @@
     }
 
     document.getElementById("calcAiBtn").addEventListener("click", () => loadAiForecast(true));
-
-    function drawCones() {
-      fireConesLayer.clearLayers();
-      Object.values(nodesCache).forEach(node => {
-        if (node.status === "ТРЕВОГА") {
-          const az = (weatherWindDir + 180) % 360;
-          const rad = az * Math.PI / 180;
-          const dist = 0.02; 
-          const p1 = [node.lat, node.lng];
-          const p2 = [node.lat + dist * Math.cos(rad - 0.3), node.lng + dist * Math.sin(rad - 0.3)];
-          const p3 = [node.lat + dist * Math.cos(rad + 0.3), node.lng + dist * Math.sin(rad + 0.3)];
-          L.polygon([p1, p2, p3], { color: "#ef4444", fillOpacity: 0.25, weight: 1 }).addTo(fireConesLayer);
-          L.circle([node.lat, node.lng], { radius: 300, color: "#ef4444", fillOpacity: 0.5 }).addTo(fireConesLayer);
-        }
-      });
-    }
-
-    function updateNode(node) {
-      nodesCache[node.node_id] = node;
-      const isAlarm = node.status === "ТРЕВОГА";
-      const icon = L.divIcon({
-        className: "",
-        html: `<div class="node-pin ${isAlarm ? 'alarm' : ''}"></div>`,
-        iconSize: [16,16], iconAnchor: [8,8]
-      });
-
-      let popup = `<b>${node.name}</b><br>T: ${node.temp}°C | CO2: ${node.co2}`;
-      if (isOperator) {
-        popup += `<br><span style="color:#b45309">Отв: ${node.io_name} (${node.io_phone})</span>`;
-      }
-
-      if (markersMap[node.node_id]) {
-        markersMap[node.node_id].setIcon(icon);
-        markersMap[node.node_id].setPopupContent(popup);
-      } else {
-        markersMap[node.node_id] = L.marker([node.lat, node.lng], {icon}).bindPopup(popup).addTo(map);
-      }
-      drawCones();
-      updateTable();
-    }
-
-    function updateTable() {
-      const list = Object.values(nodesCache);
-      const alarms = list.filter(n => n.status === "ТРЕВОГА");
-      document.getElementById("activeNodesCount").textContent = `${list.length} / 10`;
-      const stBadge = document.getElementById("networkStatusBadge");
-      if (alarms.length > 0) {
-        stBadge.textContent = `ТРЕВОГА (${alarms.length})`;
-        stBadge.style.color = "var(--danger)";
-      } else {
-        stBadge.textContent = "НОРМА";
-        stBadge.style.color = "var(--ok)";
-      }
-
-      document.getElementById("sectorsTable").innerHTML = list.map(n => `
-        <div class="sec-row ${n.status === 'ТРЕВОГА' ? 'alarm' : ''}">
-          <span><b>${n.name}</b><br><small style="color:var(--text-muted)">${isOperator ? 'Отв: ' + n.io_name + ' (' + n.io_phone + ')' : 'Сектор мониторинга ЕДДС'}</small></span>
-          <span style="font-family:monospace">${n.temp}°C | ${n.co2}ppm</span>
-        </div>
-      `).join("");
-    }
-
-    function addFeedItem(evt) {
-      const html = `<span class="time">[${evt.timestamp} МСК]</span>${evt.message}`;
-      const feed = document.getElementById("publicEventFeed");
-      if(feed) {
-        const div = document.createElement("div");
-        div.className = `event-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
-        div.innerHTML = html;
-        feed.prepend(div);
-      }
-      const opStream = document.getElementById("operatorEventStream");
-      if(opStream) {
-        const div = document.createElement("div");
-        div.className = `event-item ${evt.level === 'ALARM' ? 'alarm' : ''}`;
-        div.innerHTML = html;
-        opStream.prepend(div);
-      }
-      if(evt.level === 'ALARM') {
-        playAlarmBeep();
-      }
-    }
-
-    document.querySelectorAll(".tag-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
-        btn.style.borderColor = "var(--primary)";
-        selectedTag = btn.dataset.sec;
-        document.getElementById("citLoc").value = btn.textContent;
-      });
-    });
-
-    document.getElementById("citizenForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const data = {
-        location_name: document.getElementById("citLoc").value,
-        target_sector_id: selectedTag,
-        description: document.getElementById("citDesc").value
-      };
-      await fetch("/api/citizen-report", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(data) });
-      alert("Сигнал передан в ЕДДС Новороссийск. Проверено по регламенту ст. 19.13 КоАП РФ.");
-      e.target.reset();
-      document.querySelectorAll(".tag-btn").forEach(b => b.style.borderColor = "var(--border-color)");
-    });
-
-    function showIncident(inc) {
-      currentIncidentId = inc.id;
-      const card = document.getElementById("dispatchCard");
-      const noText = document.getElementById("noIncidentText");
-      if(card) card.style.display = "block";
-      if(noText) noText.style.display = "none";
-      
-      document.getElementById("dispatchTarget").innerHTML = `<b>Локация:</b> ${inc.location_name} (Узел: ${inc.nearest_node})`;
-      document.getElementById("dispatchTele").innerHTML = `<b>Телеметрия:</b> ${inc.sensor_telemetry}`;
-      document.getElementById("dispatchIO").innerHTML = `Ответственный ИО: <b>${inc.io_name}</b> (${inc.io_phone})`;
-      playAlarmBeep();
-    }
-
-    document.getElementById("assignBtn").addEventListener("click", async () => {
-      if (!currentIncidentId) return;
-      const unit = document.getElementById("rescueUnit").value;
-      await fetch("/api/operator/dispatch", {
-        method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ incident_id: currentIncidentId, assigned_unit: unit })
-      });
-      document.getElementById("dispatchCard").style.display = "none";
-      document.getElementById("noIncidentText").style.display = "block";
-      alert("Оперативный наряд успешно направлен.");
-      currentIncidentId = null;
-    });
-
-    document.getElementById("rejectBtn").addEventListener("click", async () => {
-      if (!currentIncidentId) return;
-      const reason = prompt("Укажите причину отклонения вызова:", "Ложный вызов (контрольный обход)");
-      if (reason === null) return;
-      
-      await fetch("/api/operator/reject", {
-        method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ incident_id: currentIncidentId, reason: reason })
-      });
-      document.getElementById("dispatchCard").style.display = "none";
-      document.getElementById("noIncidentText").style.display = "block";
-      alert("Вызов успешно отклонен как ложный.");
-      currentIncidentId = null;
-    });
-
-    document.getElementById("exportExcelBtn").addEventListener("click", () => window.open("/api/export", "_blank"));
-
-    document.querySelectorAll(".role-tab").forEach(tab => {
-      tab.addEventListener("click", () => {
-        document.querySelectorAll(".role-tab").forEach(t => t.classList.remove("active"));
-        document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
-        tab.classList.add("active");
-        document.getElementById(tab.dataset.tab).classList.add("active");
-        if (tab.dataset.tab === "hardwareTab" && window.onResizeThree) window.onResizeThree();
-      });
-    });
-
-    function initWS() {
-      const ws = new WebSocket(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`);
-      ws.onmessage = (msg) => {
-        const data = JSON.parse(msg.data);
-        if (data.type === "init") {
-          if (data.weather) {
-            weatherWindSpeed = data.weather.wind_speed;
-            weatherWindDir = data.weather.wind_direction;
-            document.getElementById("weatherDisplay").textContent = `${data.weather.temp}°C | ${data.weather.humidity}% | С-В (Норд-ост), ${weatherWindSpeed} м/с`;
-          }
-          data.nodes.forEach(updateNode);
-          data.events.forEach(addFeedItem);
-          if (data.incidents && data.incidents.length > 0 && isOperator) {
-            const activeInc = data.incidents.find(i => i.status === "ОЖИДАЕТ" || i.status === "WAITING_OPERATOR");
-            if (activeInc) showIncident(activeInc);
-          }
-          loadAiForecast(false);
-        } else if (data.type === "telemetry") {
-          updateNode(data.node);
-        } else if (data.type === "event") {
-          addFeedItem(data);
-        } else if (data.type === "new_incident") {
-          if(isOperator) {
-            showIncident(data.incident);
-          }
-        }
-      };
-      ws.onclose = () => setTimeout(initWS, 3000);
-    }
-    initWS();
+    loadAiForecast(false);
 
     setTimeout(() => {
       const container = document.getElementById("node3dCanvas");
@@ -824,15 +696,6 @@
       scene.add(group);
       function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
       animate();
-      window.onResizeThree = () => {
-        const nw = container.clientWidth;
-        const nh = container.clientHeight;
-        if(nw && nh) {
-          camera.aspect = nw / nh;
-          camera.updateProjectionMatrix();
-          renderer.setSize(nw, nh);
-        }
-      };
     }, 600);
   </script>
 </body>
