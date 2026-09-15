@@ -108,14 +108,10 @@ threading.Thread(target=background_simulation_loop, daemon=True).start()
 
 class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path):
-        # Если запрашивают корень или API-маршруты, разруливаем их отдельно
         if path.startswith("/api/"):
             return path
-        
-        # Если запрашивают главный адрес '/', отдаем index.html из папки static
         if path == "/" or path == "":
             path = "/index.html"
-            
         base_dir = os.path.join(os.getcwd(), "static")
         return os.path.join(base_dir, path.lstrip("/"))
 
@@ -140,28 +136,20 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            
             temp = CURRENT_WEATHER["temp"]
             hum = CURRENT_WEATHER["humidity"]
             wind = CURRENT_WEATHER["wind_speed"]
-            
             risk = min(98.5, max(15.0, (temp * 1.5) + (wind * 2.3) - (hum * 0.55)))
             hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
             trends = [round(min(99.0, max(10.0, risk + random.uniform(-3, 3))), 1) for _ in hours]
             category = "КРИТИЧЕСКИЙ (IV класс)" if risk > 75 else ("ПОВЫШЕННЫЙ (III класс)" if risk > 45 else "СТАБИЛЬНЫЙ")
-            
             response_data = {
                 "risk_level": round(risk, 1),
                 "risk_category": category,
                 "mchs_text": f"⚠️ ГУ МЧС по Краснодарскому краю: Действует экстренное предупреждение. ИИ фиксирует риск {round(risk,1)}% из-за норд-оста ({wind} м/с).",
                 "hours": hours,
                 "trends": trends,
-                "model_info": "FWI-ML Python Native Engine v2.4",
-                "factors": {
-                    "wind_impact": min(100, int(wind * 6)),
-                    "dryness_impact": min(100, int((100 - hum) * 1.1)),
-                    "temp_impact": min(100, int(temp * 2.5))
-                }
+                "model_info": "FWI-ML Python Native Engine v2.4"
             }
             self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode("utf-8"))
             return
@@ -186,11 +174,9 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/like":
             forwarded = self.headers.get("X-Forwarded-For")
             client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
-            
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            
             if client_ip in voted_ips:
                 res = {"ok": False, "message": "Вы уже поддержали проект с этого IP-адреса!", "count": likes_count}
             else:
@@ -198,7 +184,6 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
                 likes_count += 1
                 save_likes(likes_count, voted_ips)
                 res = {"ok": True, "count": likes_count}
-                
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
             return
 
@@ -211,19 +196,17 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             nodes_state[target]["status"] = "ТРЕВОГА"
             msg = f"ЭКСТРЕННАЯ СИМУЛЯЦИЯ: Зафиксировано возгорание в секторе '{nodes_state[target]['name']}'"
             events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
-            
             inc_id = f"ОБР-{len(incidents_list) + 101}"
             incidents_list.insert(0, {
                 "id": inc_id,
                 "timestamp": get_msk_time(),
                 "location_name": nodes_state[target]["name"],
                 "nearest_node": nodes_state[target]["name"],
-                "sensor_telemetry": f"T: 82°C | CO2: 2800 ppm",
+                "sensor_telemetry": "T: 82°C | CO2: 2800 ppm",
                 "io_name": nodes_state[target]["io_name"],
                 "io_phone": nodes_state[target]["io_phone"],
                 "status": "ОЖИДАЕТ"
             })
-
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
@@ -245,7 +228,6 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
                 data = json.loads(body)
             except:
                 data = {"location_name": "Неизвестно", "description": "Сигнал"}
-            
             inc_id = f"ОБР-{len(incidents_list) + 101}"
             matched = nodes_state.get("УЗЕЛ-01")
             incidents_list.insert(0, {
@@ -260,10 +242,9 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             })
             events_list.insert(0, {
                 "level": "CITIZEN",
-                "message": f"Сигнал от жителя: {data.get('location_name')} ({data.get('description')}). Проверка телеметрии.",
+                "message": f"Сигнал от жителя: {data.get('location_name')} ({data.get('description')}).",
                 "timestamp": get_msk_time()
             })
-
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
@@ -281,7 +262,6 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
                         inc["status"] = "ВЫПОЛНЯЕТСЯ" if "dispatch" in path else "ОТКЛОНЕН (ЛОЖНЫЙ)"
             except:
                 pass
-
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
@@ -294,5 +274,5 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     PORT = int(os.environ.get("PORT", 10000))
     with socketserver.TCPServer(("0.0.0.0", PORT), FullAPIHandler) as httpd:
-        print(f"Сервер АПК ЭкоСеть запущен на порту {PORT}")
+        print(f"Сервер запущен на порту {PORT}")
         httpd.serve_forever()
