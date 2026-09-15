@@ -106,16 +106,24 @@ def background_simulation_loop():
 
 threading.Thread(target=background_simulation_loop, daemon=True).start()
 
-class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
+class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
+    def translate_path(self, path):
+        # Если запрашивают корень или API-маршруты, разруливаем их отдельно
+        if path.startswith("/api/"):
+            return path
+        
+        # Если запрашивают главный адрес '/', отдаем index.html из папки static
+        if path == "/" or path == "":
+            path = "/index.html"
+            
+        base_dir = os.path.join(os.getcwd(), "static")
+        return os.path.join(base_dir, path.lstrip("/"))
+
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
         path = parsed_path.path
 
-        if path == "/" or path == "":
-            self.path = "/static/index.html"
-            return super().do_GET()
-        
-        elif path == "/api/state":
+        if path == "/api/state":
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
@@ -284,7 +292,7 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
 if __name__ == "__main__":
-    PORT = 10000
-    with socketserver.TCPServer(("0.0.0.0", PORT), SimpleAPIHandler) as httpd:
+    PORT = int(os.environ.get("PORT", 10000))
+    with socketserver.TCPServer(("0.0.0.0", PORT), FullAPIHandler) as httpd:
         print(f"Сервер АПК ЭкоСеть запущен на порту {PORT}")
         httpd.serve_forever()
