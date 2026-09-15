@@ -3,6 +3,7 @@ import socketserver
 import json
 import random
 import urllib.parse
+import os
 from datetime import datetime, timezone, timedelta
 
 MSK = timezone(timedelta(hours=3), name="MSK")
@@ -10,15 +11,34 @@ MSK = timezone(timedelta(hours=3), name="MSK")
 def get_msk_time():
     return datetime.now(MSK).strftime("%H:%M:%S")
 
-# Данные датчиков и метео
+# Файл для персистентного сохранения лайков и IP
+LIKES_FILE = "likes.json"
+
+def load_likes():
+    if os.path.exists(LIKES_FILE):
+        try:
+            with open(LIKES_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("count", 184), set(data.get("voted_ips", []))
+        except Exception:
+            pass
+    return 184, set()
+
+def save_likes(count, voted_ips):
+    try:
+        with open(LIKES_FILE, "w", encoding="utf-8") as f:
+            json.dump({"count": count, "voted_ips": list(voted_ips)}, f)
+    except Exception:
+        pass
+
+likes_count, voted_ips = load_likes()
+
 current_weather = {
     "temp": 26.5,
     "humidity": 42.0,
     "wind_speed": 14.0,
     "wind_direction": 45.0,
 }
-
-likes_data = {"count": 184, "voted_ips": set()}
 
 class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -34,7 +54,6 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
             
-            # AI-анализ на чистом Python с учетом погоды
             temp = current_weather["temp"]
             hum = current_weather["humidity"]
             wind = current_weather["wind_speed"]
@@ -65,9 +84,13 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            client_ip = self.client_address[0]
-            voted = client_ip in likes_data["voted_ips"]
-            self.wfile.write(json.dumps({"count": likes_data["count"], "voted": voted}).encode("utf-8"))
+            
+            # Получаем IP с учетом прокси Render (X-Forwarded-For)
+            forwarded = self.headers.get("X-Forwarded-For")
+            client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
+            
+            voted = client_ip in voted_ips
+            self.wfile.write(json.dumps({"count": likes_count, "voted": voted}).encode("utf-8"))
             return
 
         return super().do_GET()
@@ -77,17 +100,21 @@ class SimpleAPIHandler(http.server.SimpleHTTPRequestHandler):
         path = parsed_path.path
 
         if path == "/api/like":
-            client_ip = self.client_address[0]
+            global likes_count, voted_ips
+            forwarded = self.headers.get("X-Forwarded-For")
+            client_ip = forwarded.split(",")[0].strip() if forwarded else self.client_address[0]
+            
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
             
-            if client_ip in likes_data["voted_ips"]:
-                res = {"ok": False, "message": "Вы уже поддержали проект с этого IP!", "count": likes_data["count"]}
+            if client_ip in voted_ips:
+                res = {"ok": False, "message": "Вы уже поддержали проект с этого IP-адреса!", "count": likes_count}
             else:
-                likes_data["voted_ips"].add(client_ip)
-                likes_data["count"] += 1
-                res = {"ok": True, "count": likes_data["count"]}
+                voted_ips.add(client_ip)
+                likes_count += 1
+                save_likes(likes_count, voted_ips)
+                res = {"ok": True, "count": likes_count}
                 
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
             return
