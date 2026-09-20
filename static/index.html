@@ -3,7 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>АПК ЭкоСеть — Ситуационный центр (г. Новороссийск)</title>
+  
+  <!-- SEO: Заголовок и описание для поисковиков -->
+  <title>АПК ЭкоСеть — Ситуационный центр (Новороссийск)</title>
+  <meta name="description" content="Инновационная LoRa-сеть раннего обнаружения лесных пожаров. Интерактивная карта мониторинга, AI-прогноз и гражданский контроль в г. Новороссийск.">
+  <meta name="keywords" content="ЭкоСеть, Новороссийск, мониторинг пожаров, LoRa, ситуационный центр, экология, МЧС">
+  
+  <!-- Иконка вкладки браузера (Favicon) - Векторная ёлочка -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>">
+  
+  <!-- Open Graph (для красивых превью ссылок в Telegram, WhatsApp, VK) -->
+  <meta property="og:title" content="АПК ЭкоСеть — Ситуационный центр">
+  <meta property="og:description" content="Автономная ячеистая LoRa-сеть раннего обнаружения ландшафтных возгораний.">
+  <meta property="og:type" content="website">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
@@ -108,7 +121,7 @@
     </div>
     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
       <button id="themeToggleBtn" class="ctrl-btn">☀️ Тема</button>
-      <button id="accessibilityToggleBtn" class="ctrl-btn">👁️ Версия для слабовидящих</button>
+      <button id="accessibilityToggleBtn" class="ctrl-btn">👁️ Слабовидящим</button>
       <button id="loginBtn" class="ctrl-btn">🔒 Вход</button>
     </div>
   </header>
