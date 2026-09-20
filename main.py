@@ -3,6 +3,7 @@ import socketserver
 import json
 import random
 import urllib.parse
+import urllib.request
 import os
 import threading
 import time
@@ -34,23 +35,49 @@ def save_likes(count, voted_ips):
 
 likes_count, voted_ips = load_likes()
 
-# Динамическая погода в зависимости от статуса тревоги
+# Базовые значения, пока реальная погода не подгрузится
+CURRENT_WEATHER = {
+    "temp": 26.5,
+    "humidity": 42.0,
+    "wind_speed": 14.0,
+    "wind_direction": 45.0,
+}
+
+# Фоновый поток для получения РЕАЛЬНОЙ погоды в Новороссийске
+def fetch_real_weather():
+    global CURRENT_WEATHER
+    while True:
+        try:
+            url = "https://api.open-meteo.com/v1/forecast?latitude=44.72&longitude=37.76&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                current = data.get("current", {})
+                if current:
+                    CURRENT_WEATHER["temp"] = current.get("temperature_2m", 26.5)
+                    CURRENT_WEATHER["humidity"] = current.get("relative_humidity_2m", 42.0)
+                    # Перевод скорости ветра из км/ч в м/с
+                    wind_kmh = current.get("wind_speed_10m", 14.0)
+                    CURRENT_WEATHER["wind_speed"] = round(wind_kmh * 1000 / 3600, 1)
+                    CURRENT_WEATHER["wind_direction"] = current.get("wind_direction_10m", 45.0)
+        except Exception as e:
+            print("Weather API fetch error:", e)
+        
+        # Обновляем каждые 10 минут
+        time.sleep(600)
+
+threading.Thread(target=fetch_real_weather, daemon=True).start()
+
 def get_dynamic_weather():
     is_alarm = any(n["status"] == "ТРЕВОГА" for n in nodes_state.values())
     if is_alarm:
         return {
-            "temp": 34.5,
-            "humidity": 25.0,
-            "wind_speed": 22.0,
-            "wind_direction": 45.0,
+            "temp": round(CURRENT_WEATHER["temp"] + 6.0, 1),
+            "humidity": max(15.0, round(CURRENT_WEATHER["humidity"] - 15.0, 1)),
+            "wind_speed": round(CURRENT_WEATHER["wind_speed"] + 8.0, 1),
+            "wind_direction": CURRENT_WEATHER["wind_direction"],
         }
-    else:
-        return {
-            "temp": 26.5,
-            "humidity": 42.0,
-            "wind_speed": 14.0,
-            "wind_direction": 45.0,
-        }
+    return CURRENT_WEATHER
 
 FOREST_SECTORS = [
     {"id": "УЗЕЛ-01", "name": "Полигон г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
@@ -134,12 +161,11 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            current_weather = get_dynamic_weather()
             data = {
                 "nodes": list(nodes_state.values()),
                 "events": events_list[:40],
                 "incidents": incidents_list,
-                "weather": current_weather
+                "weather": get_dynamic_weather()
             }
             self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
             return
@@ -162,7 +188,7 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             response_data = {
                 "risk_level": round(risk, 1),
                 "risk_category": category,
-                "mchs_text": f"⚠️ ГУ МЧС по Краснодарскому краю: Действует экстренное предупреждение. ИИ фиксирует риск {round(risk,1)}% из-за норд-оста ({wind} м/с, t: {temp}°C).",
+                "mchs_text": f"⚠️ ГУ МЧС по Краснодарскому краю: Действует экстренное предупреждение. ИИ фиксирует риск {round(risk,1)}% из-за погодных условий (ветер: {wind} м/с, t: {temp}°C).",
                 "hours": hours,
                 "trends": trends,
                 "model_info": "FWI-ML Python Native Engine v2.4"
