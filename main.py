@@ -3,7 +3,6 @@ import socketserver
 import json
 import random
 import urllib.parse
-import urllib.request
 import os
 import threading
 import time
@@ -35,49 +34,13 @@ def save_likes(count, voted_ips):
 
 likes_count, voted_ips = load_likes()
 
-# Базовые значения, пока реальная погода не подгрузится
+# Базовые значения для старта (Новороссийск, активный норд-ост)
 CURRENT_WEATHER = {
-    "temp": 26.5,
-    "humidity": 42.0,
-    "wind_speed": 14.0,
+    "temp": 28.5,
+    "humidity": 38.0,
+    "wind_speed": 16.0,
     "wind_direction": 45.0,
 }
-
-# Фоновый поток для получения РЕАЛЬНОЙ погоды в Новороссийске
-def fetch_real_weather():
-    global CURRENT_WEATHER
-    while True:
-        try:
-            url = "https://api.open-meteo.com/v1/forecast?latitude=44.72&longitude=37.76&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m"
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=5) as response:
-                data = json.loads(response.read().decode('utf-8'))
-                current = data.get("current", {})
-                if current:
-                    CURRENT_WEATHER["temp"] = current.get("temperature_2m", 26.5)
-                    CURRENT_WEATHER["humidity"] = current.get("relative_humidity_2m", 42.0)
-                    # Перевод скорости ветра из км/ч в м/с
-                    wind_kmh = current.get("wind_speed_10m", 14.0)
-                    CURRENT_WEATHER["wind_speed"] = round(wind_kmh * 1000 / 3600, 1)
-                    CURRENT_WEATHER["wind_direction"] = current.get("wind_direction_10m", 45.0)
-        except Exception as e:
-            print("Weather API fetch error:", e)
-        
-        # Обновляем каждые 10 минут
-        time.sleep(600)
-
-threading.Thread(target=fetch_real_weather, daemon=True).start()
-
-def get_dynamic_weather():
-    is_alarm = any(n["status"] == "ТРЕВОГА" for n in nodes_state.values())
-    if is_alarm:
-        return {
-            "temp": round(CURRENT_WEATHER["temp"] + 6.0, 1),
-            "humidity": max(15.0, round(CURRENT_WEATHER["humidity"] - 15.0, 1)),
-            "wind_speed": round(CURRENT_WEATHER["wind_speed"] + 8.0, 1),
-            "wind_direction": CURRENT_WEATHER["wind_direction"],
-        }
-    return CURRENT_WEATHER
 
 FOREST_SECTORS = [
     {"id": "УЗЕЛ-01", "name": "Полигон г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
@@ -113,8 +76,8 @@ def reset_simulation_state():
             "lat": s["lat"],
             "lng": s["lng"],
             "is_critical": s["is_critical"],
-            "temp": round(random.uniform(22.0, 25.0), 1),
-            "humidity": round(random.uniform(40.0, 50.0), 1),
+            "temp": round(CURRENT_WEATHER["temp"] + random.uniform(-1, 1), 1),
+            "humidity": round(CURRENT_WEATHER["humidity"] + random.uniform(-2, 2), 1),
             "co2": random.randint(380, 420),
             "battery": random.randint(85, 100),
             "status": "НОРМА",
@@ -125,24 +88,52 @@ def reset_simulation_state():
 reset_simulation_state()
 
 def background_simulation_loop():
+    global CURRENT_WEATHER
     while True:
-        time.sleep(4)
-        if not active_fires and random.random() < 0.03:
+        time.sleep(3) # Обновляем телеметрию каждые 3 секунды
+        
+        # 1. Живая симуляция метеоусловий (микро-колебания для презентации)
+        CURRENT_WEATHER["temp"] = round(CURRENT_WEATHER["temp"] + random.uniform(-0.3, 0.3), 1)
+        CURRENT_WEATHER["humidity"] = round(max(20.0, min(100.0, CURRENT_WEATHER["humidity"] + random.uniform(-1.0, 1.0))), 1)
+        CURRENT_WEATHER["wind_speed"] = round(max(5.0, CURRENT_WEATHER["wind_speed"] + random.uniform(-0.5, 0.5)), 1)
+        
+        # Возврат к средним значениям, чтобы показатели не улетели в бесконечность
+        if CURRENT_WEATHER["temp"] > 33.0: CURRENT_WEATHER["temp"] -= 0.5
+        if CURRENT_WEATHER["temp"] < 25.0: CURRENT_WEATHER["temp"] += 0.5
+        if CURRENT_WEATHER["wind_speed"] > 22.0: CURRENT_WEATHER["wind_speed"] -= 0.5
+        if CURRENT_WEATHER["wind_speed"] < 12.0: CURRENT_WEATHER["wind_speed"] += 0.5
+
+        # 2. Спонтанные возгорания
+        if not active_fires and random.random() < 0.02:
             criticals = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
             target = random.choice(criticals)
             active_fires.add(target)
-            nodes_state[target]["temp"] = 78.5
+            nodes_state[target]["temp"] = 82.5
             nodes_state[target]["co2"] = 2450
             nodes_state[target]["status"] = "ТРЕВОГА"
-            msg = f"КРИТИЧЕСКИЙ РОСТ ТЕМПЕРАТУРЫ: {nodes_state[target]['name']} (T: 78°C)"
+            msg = f"КРИТИЧЕСКИЙ РОСТ ТЕМПЕРАТУРЫ: {nodes_state[target]['name']} (T: 82°C)"
             events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
 
+        # 3. Обновление датчиков
         for node_id, node in nodes_state.items():
             if node_id not in active_fires:
-                node["temp"] = round(random.uniform(22.0, 25.0), 1)
+                # Датчики дышат вместе с погодой
+                node["temp"] = round(CURRENT_WEATHER["temp"] + random.uniform(-1.5, 1.5), 1)
                 node["battery"] = max(5, node["battery"] - random.choice([0, 0, 0, 1]))
 
 threading.Thread(target=background_simulation_loop, daemon=True).start()
+
+def get_dynamic_weather():
+    # Если пожар, резко ухудшаем локальную погоду (растет температура и разгоняется ветер)
+    is_alarm = any(n["status"] == "ТРЕВОГА" for n in nodes_state.values())
+    if is_alarm:
+        return {
+            "temp": round(CURRENT_WEATHER["temp"] + 5.5, 1),
+            "humidity": max(15.0, round(CURRENT_WEATHER["humidity"] - 15.0, 1)),
+            "wind_speed": round(CURRENT_WEATHER["wind_speed"] + 6.0, 1),
+            "wind_direction": 45.0,
+        }
+    return CURRENT_WEATHER
 
 class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path):
@@ -180,15 +171,16 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             hum = weather["humidity"]
             wind = weather["wind_speed"]
             
-            risk = min(98.5, max(15.0, (temp * 1.5) + (wind * 2.3) - (hum * 0.55)))
+            # Динамический расчет риска от реальных текущих показателей
+            risk = min(99.9, max(15.0, (temp * 1.6) + (wind * 2.5) - (hum * 0.4)))
             hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
-            trends = [round(min(99.0, max(10.0, risk + random.uniform(-3, 3))), 1) for _ in hours]
+            trends = [round(min(99.0, max(10.0, risk + random.uniform(-4, 4))), 1) for _ in hours]
             category = "КРИТИЧЕСКИЙ (IV класс)" if risk > 75 else ("ПОВЫШЕННЫЙ (III класс)" if risk > 45 else "СТАБИЛЬНЫЙ")
             
             response_data = {
                 "risk_level": round(risk, 1),
                 "risk_category": category,
-                "mchs_text": f"⚠️ ГУ МЧС по Краснодарскому краю: Действует экстренное предупреждение. ИИ фиксирует риск {round(risk,1)}% из-за погодных условий (ветер: {wind} м/с, t: {temp}°C).",
+                "mchs_text": f"⚠️ МЧС: Действует предупреждение. ИИ фиксирует динамический риск {round(risk,1)}% (ветер: {wind} м/с, t: {temp}°C).",
                 "hours": hours,
                 "trends": trends,
                 "model_info": "FWI-ML Python Native Engine v2.4"
@@ -233,8 +225,8 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             criticals = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
             target = random.choice(criticals)
             active_fires.add(target)
-            nodes_state[target]["temp"] = 82.0
-            nodes_state[target]["co2"] = 2800
+            nodes_state[target]["temp"] = 85.0
+            nodes_state[target]["co2"] = 2950
             nodes_state[target]["status"] = "ТРЕВОГА"
             msg = f"ЭКСТРЕННАЯ СИМУЛЯЦИЯ: Зафиксировано возгорание в секторе '{nodes_state[target]['name']}'"
             events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
@@ -244,7 +236,7 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
                 "timestamp": get_msk_time(),
                 "location_name": nodes_state[target]["name"],
                 "nearest_node": nodes_state[target]["name"],
-                "sensor_telemetry": "T: 82°C | CO2: 2800 ppm",
+                "sensor_telemetry": "T: 85°C | CO2: 2950 ppm",
                 "io_name": nodes_state[target]["io_name"],
                 "io_phone": nodes_state[target]["io_phone"],
                 "status": "ОЖИДАЕТ"
