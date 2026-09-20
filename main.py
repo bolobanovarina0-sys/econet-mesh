@@ -34,12 +34,23 @@ def save_likes(count, voted_ips):
 
 likes_count, voted_ips = load_likes()
 
-CURRENT_WEATHER = {
-    "temp": 26.5,
-    "humidity": 42.0,
-    "wind_speed": 14.0,
-    "wind_direction": 45.0,
-}
+# Динамическая погода в зависимости от статуса тревоги
+def get_dynamic_weather():
+    is_alarm = any(n["status"] == "ТРЕВОГА" for n in nodes_state.values())
+    if is_alarm:
+        return {
+            "temp": 34.5,
+            "humidity": 25.0,
+            "wind_speed": 22.0,
+            "wind_direction": 45.0,
+        }
+    else:
+        return {
+            "temp": 26.5,
+            "humidity": 42.0,
+            "wind_speed": 14.0,
+            "wind_direction": 45.0,
+        }
 
 FOREST_SECTORS = [
     {"id": "УЗЕЛ-01", "name": "Полигон г. Щелба", "lat": 44.7558, "lng": 37.7025, "is_critical": True, "io_name": "Иванов А.В.", "io_phone": "+7 (928) 111-22-33"},
@@ -123,11 +134,12 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
+            current_weather = get_dynamic_weather()
             data = {
                 "nodes": list(nodes_state.values()),
                 "events": events_list[:40],
                 "incidents": incidents_list,
-                "weather": CURRENT_WEATHER
+                "weather": current_weather
             }
             self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
             return
@@ -136,17 +148,21 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            temp = CURRENT_WEATHER["temp"]
-            hum = CURRENT_WEATHER["humidity"]
-            wind = CURRENT_WEATHER["wind_speed"]
+            
+            weather = get_dynamic_weather()
+            temp = weather["temp"]
+            hum = weather["humidity"]
+            wind = weather["wind_speed"]
+            
             risk = min(98.5, max(15.0, (temp * 1.5) + (wind * 2.3) - (hum * 0.55)))
             hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
             trends = [round(min(99.0, max(10.0, risk + random.uniform(-3, 3))), 1) for _ in hours]
             category = "КРИТИЧЕСКИЙ (IV класс)" if risk > 75 else ("ПОВЫШЕННЫЙ (III класс)" if risk > 45 else "СТАБИЛЬНЫЙ")
+            
             response_data = {
                 "risk_level": round(risk, 1),
                 "risk_category": category,
-                "mchs_text": f"⚠️ ГУ МЧС по Краснодарскому краю: Действует экстренное предупреждение. ИИ фиксирует риск {round(risk,1)}% из-за норд-оста ({wind} м/с).",
+                "mchs_text": f"⚠️ ГУ МЧС по Краснодарскому краю: Действует экстренное предупреждение. ИИ фиксирует риск {round(risk,1)}% из-за норд-оста ({wind} м/с, t: {temp}°C).",
                 "hours": hours,
                 "trends": trends,
                 "model_info": "FWI-ML Python Native Engine v2.4"
