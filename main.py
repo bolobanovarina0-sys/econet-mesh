@@ -34,7 +34,6 @@ def save_likes(count, voted_ips):
 
 likes_count, voted_ips = load_likes()
 
-# Базовые значения для старта (Новороссийск, активный норд-ост)
 CURRENT_WEATHER = {
     "temp": 28.5,
     "humidity": 38.0,
@@ -90,20 +89,16 @@ reset_simulation_state()
 def background_simulation_loop():
     global CURRENT_WEATHER
     while True:
-        time.sleep(3) # Обновляем телеметрию каждые 3 секунды
-        
-        # 1. Живая симуляция метеоусловий (микро-колебания для презентации)
+        time.sleep(3)
         CURRENT_WEATHER["temp"] = round(CURRENT_WEATHER["temp"] + random.uniform(-0.3, 0.3), 1)
         CURRENT_WEATHER["humidity"] = round(max(20.0, min(100.0, CURRENT_WEATHER["humidity"] + random.uniform(-1.0, 1.0))), 1)
         CURRENT_WEATHER["wind_speed"] = round(max(5.0, CURRENT_WEATHER["wind_speed"] + random.uniform(-0.5, 0.5)), 1)
         
-        # Возврат к средним значениям, чтобы показатели не улетели в бесконечность
         if CURRENT_WEATHER["temp"] > 33.0: CURRENT_WEATHER["temp"] -= 0.5
         if CURRENT_WEATHER["temp"] < 25.0: CURRENT_WEATHER["temp"] += 0.5
         if CURRENT_WEATHER["wind_speed"] > 22.0: CURRENT_WEATHER["wind_speed"] -= 0.5
         if CURRENT_WEATHER["wind_speed"] < 12.0: CURRENT_WEATHER["wind_speed"] += 0.5
 
-        # 2. Спонтанные возгорания
         if not active_fires and random.random() < 0.02:
             criticals = [s["id"] for s in FOREST_SECTORS if s["is_critical"]]
             target = random.choice(criticals)
@@ -114,17 +109,14 @@ def background_simulation_loop():
             msg = f"КРИТИЧЕСКИЙ РОСТ ТЕМПЕРАТУРЫ: {nodes_state[target]['name']} (T: 82°C)"
             events_list.insert(0, {"level": "ALARM", "message": msg, "timestamp": get_msk_time()})
 
-        # 3. Обновление датчиков
         for node_id, node in nodes_state.items():
             if node_id not in active_fires:
-                # Датчики дышат вместе с погодой
                 node["temp"] = round(CURRENT_WEATHER["temp"] + random.uniform(-1.5, 1.5), 1)
                 node["battery"] = max(5, node["battery"] - random.choice([0, 0, 0, 1]))
 
 threading.Thread(target=background_simulation_loop, daemon=True).start()
 
 def get_dynamic_weather():
-    # Если пожар, резко ухудшаем локальную погоду (растет температура и разгоняется ветер)
     is_alarm = any(n["status"] == "ТРЕВОГА" for n in nodes_state.values())
     if is_alarm:
         return {
@@ -136,6 +128,16 @@ def get_dynamic_weather():
     return CURRENT_WEATHER
 
 class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
+
     def translate_path(self, path):
         if path.startswith("/api/"):
             return path
@@ -171,7 +173,6 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             hum = weather["humidity"]
             wind = weather["wind_speed"]
             
-            # Динамический расчет риска от реальных текущих показателей
             risk = min(99.9, max(15.0, (temp * 1.6) + (wind * 2.5) - (hum * 0.4)))
             hours = ["Сейчас", "+1 ч", "+2 ч", "+3 ч", "+4 ч", "+5 ч", "+6 ч"]
             trends = [round(min(99.0, max(10.0, risk + random.uniform(-4, 4))), 1) for _ in hours]
@@ -212,7 +213,7 @@ class FullAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
             if client_ip in voted_ips:
-                res = {"ok": False, "message": "Вы уже поддержали проект с этого IP-адреса!", "count": likes_count}
+                res = {"ok": False, "message": "Вы уже поддержали проект с этого устройства!", "count": likes_count}
             else:
                 voted_ips.add(client_ip)
                 likes_count += 1
